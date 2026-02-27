@@ -40,7 +40,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ),
         );
       } else if (next.status == AuthStatus.authenticated) {
-        context.go('/'); // Mapping '/feed' to '/' for now
+        context.go('/feed'); // Direct them straight to the main experience
       }
     });
 

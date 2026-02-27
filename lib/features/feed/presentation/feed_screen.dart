@@ -29,7 +29,7 @@ class FeedScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () => context.push('/rooms'),
+            onPressed: () => context.push('/chat'),
           ),
         ],
       ),

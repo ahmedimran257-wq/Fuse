@@ -31,7 +31,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
-        context.go('/'); // Mapping '/feed' to '/' for now
+        context.go('/feed'); // Direct them straight to the main experience
       }
     });
 
@@ -112,7 +112,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             const SizedBox(height: 12),
                             TextButton(
                               onPressed: () {
-                                context.push('/signup');
+                                context.go(
+                                  '/signup',
+                                ); // Replaces the screen entirely
                               },
                               child: const Text(
                                 'Need an account? Sign Up',

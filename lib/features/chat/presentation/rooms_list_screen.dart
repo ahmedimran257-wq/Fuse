@@ -38,8 +38,7 @@ class RoomsListScreen extends ConsumerWidget {
                   .inSeconds;
               return GestureDetector(
                 onTap: () {
-                  // Updated to use go_router matching our app setup
-                  context.push('/chat/${room.id}');
+                  context.push('/chat/room', extra: room.id);
                 },
                 child: FuseGlassCard(
                   child: Padding(

@@ -28,6 +28,16 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(creationControllerProvider);
 
+    // Listen for successful upload and route automatically
+    ref.listen(creationControllerProvider, (previous, next) {
+      if (previous != null &&
+          previous.isLoading &&
+          !next.isLoading &&
+          !next.hasError) {
+        context.go('/feed');
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -95,19 +105,13 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                   PremiumButton(
                     text: 'Post',
                     isLoading: state.isLoading,
-                    onPressed: () async {
-                      final success = await ref
+                    onPressed: () {
+                      ref
                           .read(creationControllerProvider.notifier)
                           .uploadPost(
                             imagePath: widget.imagePath,
                             caption: _captionController.text,
                           );
-
-                      if (!context.mounted) return;
-
-                      if (success) {
-                        context.go('/feed');
-                      }
                     },
                   ),
                 ],

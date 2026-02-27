@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../features/auth/presentation/auth_controller.dart';
-import '../../features/feed/presentation/feed_screen.dart';
-import '../../features/auth/presentation/phone_input_screen.dart';
-import '../../features/auth/presentation/otp_verification_screen.dart';
 import '../../features/auth/domain/auth_state.dart';
+
+// 1. We bring back your sleek Email/Password screens
+import '../../features/auth/presentation/sign_in_screen.dart';
+import '../../features/auth/presentation/sign_up_screen.dart';
+
+import '../../features/feed/presentation/feed_screen.dart';
 import '../../features/post_creation/presentation/camera_screen.dart';
 import '../../features/post_creation/presentation/preview_screen.dart';
 import '../../features/chat/presentation/rooms_list_screen.dart';
@@ -12,27 +16,41 @@ import '../../features/chat/presentation/chat_room_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
+
   return GoRouter(
-    initialLocation: '/',
+    initialLocation:
+        '/login', // 2. Set the starting point to your SignIn screen
     redirect: (context, state) {
       final isLoggedIn = authState.status == AuthStatus.authenticated;
       final isLoggingIn =
-          state.matchedLocation == '/otp' || state.matchedLocation == '/';
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/signup';
 
-      if (!isLoggedIn && !isLoggingIn) {
-        return '/';
+      // 1. If they are not logged in, force them to login
+      if (!isLoggedIn) {
+        return isLoggingIn ? null : '/login';
       }
-      if (isLoggedIn && isLoggingIn) {
+
+      // 2. If they ARE logged in, and they try to go to the login screen OR the root route ('/'),
+      // forcefully push them into the Feed.
+      if (isLoggedIn && (isLoggingIn || state.matchedLocation == '/')) {
         return '/feed';
       }
+
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const PhoneInputScreen()),
+      // 3. Register your actual Auth routes
       GoRoute(
-        path: '/otp',
-        builder: (context, state) => const OTPVerificationScreen(),
+        path: '/login',
+        builder: (context, state) => const SignInScreen(),
       ),
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignUpScreen(),
+      ),
+
+      // Core App Routes
       GoRoute(path: '/feed', builder: (context, state) => const FeedScreen()),
       GoRoute(
         path: '/camera',
