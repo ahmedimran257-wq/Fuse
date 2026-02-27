@@ -56,13 +56,14 @@ class FeedScreen extends ConsumerWidget {
           return PageView.builder(
             scrollDirection: Axis.vertical,
             itemCount: posts.length,
+            onPageChanged: (index) {
+              // Only fires exactly once when the user snaps to a new video
+              final post = posts[index];
+              ref.read(feedControllerProvider.notifier).viewPost(post.id);
+            },
             itemBuilder: (context, index) {
               final post = posts[index];
-              // Trigger view when post becomes visible
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(feedControllerProvider.notifier).viewPost(post.id);
-              });
-              return PostWidget(post: post);
+              return PostWidget(post: post); // Clean and safe
             },
           );
         },
