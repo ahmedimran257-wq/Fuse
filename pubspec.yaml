@@ -59,8 +59,8 @@ dependencies:
   # Sharing (for rescue links)
   share_plus: ^10.0.0
 
-  # For network images and caching (optional but recommended)
-  cached_network_image: ^3.4.0
+  # For network images and caching
+  cached_network_image: ^3.4.1
 
   # Fonts
   google_fonts: ^6.2.1
@@ -68,9 +68,20 @@ dependencies:
   # Cupertino Icons
   cupertino_icons: ^1.0.8
 
+  # State generation
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Multimedia
+  video_player: ^2.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  build_runner: ^2.4.11
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

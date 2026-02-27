@@ -1,24 +1,80 @@
 import 'package:flutter/material.dart';
-import '../../auth/presentation/auth_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fuse/core/theme/app_colors.dart';
+import 'package:fuse/core/utils/haptics_engine.dart';
+import 'feed_controller.dart';
+import 'post_widget.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(feedControllerProvider);
+
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('FUSE FEED'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'FUSE',
+          style: TextStyle(
+            color: AppColors.accent,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
+            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+            onPressed: () => context.push('/rooms'),
           ),
         ],
       ),
-      body: const Center(child: Text('Premium Feed Coming Soon')),
+      extendBodyBehindAppBar: true,
+      body: postsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+        error: (error, stack) => Center(
+          child: Text(
+            'Error: $error',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+        ),
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const Center(
+              child: Text(
+                'No posts yet. Create one!',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+            );
+          }
+          return PageView.builder(
+            scrollDirection: Axis.vertical,
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              // Trigger view when post becomes visible
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ref.read(feedControllerProvider.notifier).viewPost(post.id);
+              });
+              return PostWidget(post: post);
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          HapticsEngine.lightImpact();
+          context.push('/camera');
+        },
+        backgroundColor: AppColors.accent,
+        child: const Icon(Icons.add, color: AppColors.textPrimary),
+      ),
     );
   }
 }

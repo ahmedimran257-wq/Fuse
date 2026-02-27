@@ -11,7 +11,20 @@ final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
 class AuthController extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
 
-  AuthController(this._authRepository) : super(AuthState.initial());
+  AuthController(this._authRepository) : super(AuthState.initial()) {
+    _init();
+  }
+
+  void _init() {
+    _authRepository.authStateChanges().listen((event) {
+      final session = event.session;
+      if (session != null) {
+        state = state.copyWith(status: AuthStatus.authenticated);
+      } else {
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      }
+    });
+  }
 
   Future<void> signUp(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
