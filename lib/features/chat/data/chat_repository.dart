@@ -5,67 +5,86 @@ import '../domain/chat_message.dart';
 class ChatRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
-  // Stream of active rooms
-  Stream<List<ChatRoom>> subscribeToRooms() {
-    return _client
+  // Fetch rooms the user is a member of
+  Future<List<ChatRoom>> fetchMyRooms() async {
+    final userId = _client.auth.currentUser!.id;
+    final response = await _client
         .from('chat_rooms')
-        .stream(primaryKey: ['id'])
-        .eq('status', 'active')
-        .order('expiration_timestamp', ascending: false)
-        .map(
-          (events) => events.map((json) => ChatRoom.fromJson(json)).toList(),
-        );
+        .select('*, chat_members!inner(user_id)')
+        .eq('chat_members.user_id', userId)
+        .gt('expiration_timestamp', DateTime.now().toIso8601String())
+        .order('created_at', ascending: false);
+    return (response as List).map((json) => ChatRoom.fromJson(json)).toList();
   }
 
   // Create a new room
-  Future<ChatRoom> createRoom(String name) async {
+  Future<ChatRoom> createRoom(
+    String roomName, {
+    int maxDurationHours = 24,
+  }) async {
+    final userId = _client.auth.currentUser!.id;
+    final now = DateTime.now();
+    final expiration = now.add(const Duration(minutes: 30)); // initial fuse
+    final maxExpiration = now.add(Duration(hours: maxDurationHours));
     final response = await _client
         .from('chat_rooms')
-        .insert({'name': name, 'created_by': _client.auth.currentUser!.id})
+        .insert({
+          'room_name': roomName,
+          'creator_id': userId,
+          'expiration_timestamp': expiration.toIso8601String(),
+          'max_expiration_timestamp': maxExpiration.toIso8601String(),
+          'status': 'active', // Ensure status exists if required
+          'created_at': now
+              .toIso8601String(), // Ensure created_at exists for model calculation
+        })
         .select()
         .single();
+    // Add creator as member
+    await _client.from('chat_members').insert({
+      'room_id': response['id'],
+      'user_id': userId,
+    });
     return ChatRoom.fromJson(response);
   }
 
-  // Stream of messages for a room
+  // Join a room
+  Future<void> joinRoom(String roomId) async {
+    final userId = _client.auth.currentUser!.id;
+    await _client.from('chat_members').insert({
+      'room_id': roomId,
+      'user_id': userId,
+    });
+  }
+
+  // Send a message
+  Future<void> sendMessage(String roomId, String content) async {
+    final userId = _client.auth.currentUser!.id;
+    await _client.from('chat_messages').insert({
+      'room_id': roomId,
+      'sender_id': userId,
+      'content': content,
+    });
+  }
+
+  // Subscribe to messages in a room
   Stream<List<ChatMessage>> subscribeToMessages(String roomId) {
     return _client
         .from('chat_messages')
         .stream(primaryKey: ['id'])
         .eq('room_id', roomId)
-        .order('created_at', ascending: true)
+        .order('created_at')
         .map(
           (events) => events.map((json) => ChatMessage.fromJson(json)).toList(),
         );
   }
 
-  // Send message and extend room timer
-  Future<void> sendMessage(String roomId, String text) async {
-    // 1. Insert message
-    await _client.from('chat_messages').insert({
-      'room_id': roomId,
-      'sender_id': _client.auth.currentUser!.id,
-      'text': text,
-    });
-
-    // 2. Extend room timer (via RPC to handle atomic update)
-    await _client.rpc(
-      'extend_room_timer',
-      params: {
-        'p_room_id': roomId,
-        'p_extension_seconds': 30, // Each message adds 30 seconds
-      },
-    );
-  }
-
-  // Join room and extend timer
-  Future<void> joinRoom(String roomId) async {
-    await _client.rpc(
-      'extend_room_timer',
-      params: {
-        'p_room_id': roomId,
-        'p_extension_seconds': 60, // New join adds 60 seconds
-      },
-    );
+  // Get room details
+  Future<ChatRoom> getRoom(String roomId) async {
+    final response = await _client
+        .from('chat_rooms')
+        .select()
+        .eq('id', roomId)
+        .single();
+    return ChatRoom.fromJson(response);
   }
 }

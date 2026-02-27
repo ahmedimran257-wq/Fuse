@@ -1,82 +1,46 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/chat_repository.dart';
-import '../domain/chat_state.dart';
+import '../domain/chat_room.dart';
+import '../domain/chat_message.dart';
 
 final chatRepositoryProvider = Provider((ref) => ChatRepository());
 
-class ChatController extends StateNotifier<ChatState> {
+final chatControllerProvider =
+    StateNotifierProvider<ChatController, AsyncValue<List<ChatRoom>>>((ref) {
+      return ChatController(ref.watch(chatRepositoryProvider));
+    });
+
+class ChatController extends StateNotifier<AsyncValue<List<ChatRoom>>> {
   final ChatRepository _repository;
-  StreamSubscription? _roomsSubscription;
-  StreamSubscription? _messagesSubscription;
-
-  ChatController(this._repository) : super(const ChatState()) {
-    _initRoomsStream();
+  ChatController(this._repository) : super(const AsyncValue.loading()) {
+    _loadRooms();
   }
 
-  void _initRoomsStream() {
-    _roomsSubscription?.cancel();
-    _roomsSubscription = _repository.subscribeToRooms().listen(
-      (rooms) {
-        state = state.copyWith(rooms: rooms, isLoading: false);
-      },
-      onError: (error) {
-        state = state.copyWith(
-          errorMessage: error.toString(),
-          isLoading: false,
-        );
-      },
-    );
-  }
-
-  void enterRoom(String roomId) {
-    state = state.copyWith(messages: [], isLoading: true);
-    _messagesSubscription?.cancel();
-    _messagesSubscription = _repository
-        .subscribeToMessages(roomId)
-        .listen(
-          (messages) {
-            state = state.copyWith(messages: messages, isLoading: false);
-          },
-          onError: (error) {
-            state = state.copyWith(
-              errorMessage: error.toString(),
-              isLoading: false,
-            );
-          },
-        );
-    _repository.joinRoom(roomId);
-  }
-
-  Future<void> createRoom(String name) async {
-    state = state.copyWith(isLoading: true);
+  Future<void> _loadRooms() async {
     try {
-      await _repository.createRoom(name);
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString(), isLoading: false);
+      final rooms = await _repository.fetchMyRooms();
+      state = AsyncValue.data(rooms);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
-  Future<void> sendMessage(String roomId, String text) async {
-    if (text.trim().isEmpty) return;
-    try {
-      await _repository.sendMessage(roomId, text.trim());
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
-    }
+  Future<ChatRoom> createRoom(String name) async {
+    final room = await _repository.createRoom(name);
+    await _loadRooms(); // refresh
+    return room;
   }
 
-  @override
-  void dispose() {
-    _roomsSubscription?.cancel();
-    _messagesSubscription?.cancel();
-    super.dispose();
+  Future<void> joinRoom(String roomId) async {
+    await _repository.joinRoom(roomId);
+    await _loadRooms();
   }
 }
 
-final chatControllerProvider = StateNotifierProvider<ChatController, ChatState>(
-  (ref) {
-    final repository = ref.watch(chatRepositoryProvider);
-    return ChatController(repository);
-  },
-);
+final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((
+  ref,
+  roomId,
+) {
+  final repo = ChatRepository();
+  return repo.subscribeToMessages(roomId);
+});

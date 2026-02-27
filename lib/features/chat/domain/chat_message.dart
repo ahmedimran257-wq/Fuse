@@ -1,19 +1,25 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class ChatMessage {
+  final String id;
+  final String roomId;
+  final String senderId;
+  final String content;
+  final DateTime createdAt;
 
-part 'chat_message.freezed.dart';
-part 'chat_message.g.dart';
+  ChatMessage({
+    required this.id,
+    required this.roomId,
+    required this.senderId,
+    required this.content,
+    required this.createdAt,
+  });
 
-@freezed
-class ChatMessage with _$ChatMessage {
-  const factory ChatMessage({
-    required String id,
-    @JsonKey(name: 'room_id') required String roomId,
-    @JsonKey(name: 'sender_id') required String senderId,
-    required String text,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
-    @Default('') String senderName,
-  }) = _ChatMessage;
-
-  factory ChatMessage.fromJson(Map<String, dynamic> json) =>
-      _$ChatMessageFromJson(json);
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'],
+      roomId: json['room_id'],
+      senderId: json['sender_id'],
+      content: json['content'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
 }

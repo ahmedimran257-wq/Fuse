@@ -1,30 +1,35 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class ChatRoom {
+  final String id;
+  final String roomName;
+  final String creatorId;
+  final DateTime expirationTimestamp;
+  final DateTime maxExpirationTimestamp;
+  final DateTime createdAt;
 
-part 'chat_room.freezed.dart';
-part 'chat_room.g.dart';
+  ChatRoom({
+    required this.id,
+    required this.roomName,
+    required this.creatorId,
+    required this.expirationTimestamp,
+    required this.maxExpirationTimestamp,
+    required this.createdAt,
+  });
 
-@freezed
-class ChatRoom with _$ChatRoom {
-  const ChatRoom._();
-
-  const factory ChatRoom({
-    required String id,
-    required String name,
-    @JsonKey(name: 'created_by') required String createdBy,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
-    @JsonKey(name: 'expiration_timestamp')
-    required DateTime expirationTimestamp,
-    @JsonKey(name: 'base_duration_seconds')
-    @Default(300)
-    int baseDurationSeconds,
-    @Default('active') String status,
-  }) = _ChatRoom;
-
-  factory ChatRoom.fromJson(Map<String, dynamic> json) =>
-      _$ChatRoomFromJson(json);
+  factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    return ChatRoom(
+      id: json['id'],
+      roomName: json['room_name'],
+      creatorId: json['creator_id'],
+      expirationTimestamp: DateTime.parse(json['expiration_timestamp']),
+      maxExpirationTimestamp: DateTime.parse(json['max_expiration_timestamp']),
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
 
   int get remainingSeconds => expirationTimestamp
       .difference(DateTime.now())
       .inSeconds
-      .clamp(0, baseDurationSeconds * 2);
+      .clamp(0, maxExpirationTimestamp.difference(createdAt).inSeconds);
+  int get totalSeconds =>
+      maxExpirationTimestamp.difference(createdAt).inSeconds;
 }
