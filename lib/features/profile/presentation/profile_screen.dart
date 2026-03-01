@@ -134,13 +134,15 @@ class ProfileScreen extends ConsumerWidget {
                                   profile.reviveTokens > 0)
                                 PremiumButton(
                                   text: 'Use Revive Token',
-                                  onPressed: () {
+                                  onPressed: () async {
                                     HapticsEngine.heavyImpact();
-                                    ref
+                                    await ref
                                         .read(
                                           profileControllerProvider.notifier,
                                         )
                                         .useReviveToken(post.id);
+                                    // Force the list to redraw
+                                    ref.invalidate(userPostsProvider(userId));
                                   },
                                 ),
                             ],

@@ -33,9 +33,6 @@ class ChatRepository {
           'creator_id': userId,
           'expiration_timestamp': expiration.toIso8601String(),
           'max_expiration_timestamp': maxExpiration.toIso8601String(),
-          'status': 'active', // Ensure status exists if required
-          'created_at': now
-              .toIso8601String(), // Ensure created_at exists for model calculation
         })
         .select()
         .single();

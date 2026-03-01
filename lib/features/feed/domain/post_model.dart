@@ -28,8 +28,10 @@ class Post with _$Post {
 
   factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
 
-  int get remainingSeconds => expirationTimestamp
-      .difference(DateTime.now())
-      .inSeconds
-      .clamp(0, baseDurationSeconds);
+  int get remainingSeconds {
+    final diff = expirationTimestamp.difference(DateTime.now()).inSeconds;
+    return diff > 0
+        ? diff
+        : 0; // Never go negative, but allow infinite upper limit
+  }
 }
