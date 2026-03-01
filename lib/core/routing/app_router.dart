@@ -57,23 +57,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isLoggingIn ? null : '/login';
       }
 
-      // If the link is a deep link, parse it explicitly to ensure robust routing
-      if (state.uri.path.startsWith('/post/')) {
-        final postId = state.uri.pathSegments.last;
-        // We navigate to our dedicated complete SinglePostScreen
-        if (state.matchedLocation != '/post/$postId') {
-          return '/post/$postId';
-        }
-        return null;
-      }
-      if (state.uri.path.startsWith('/chat/')) {
-        final roomId = state.uri.pathSegments.last;
-        if (state.matchedLocation != '/chat/$roomId') {
-          return '/chat/$roomId';
-        }
-        return null;
-      }
-
       // 2. If they ARE logged in, and they try to go to the login screen OR the root route ('/'),
       // forcefully push them into the Feed.
       if (isLoggedIn && (isLoggingIn || state.matchedLocation == '/')) {

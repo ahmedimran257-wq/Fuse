@@ -35,6 +35,10 @@ class ChatController extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     await _repository.joinRoom(roomId);
     await _loadRooms();
   }
+
+  Future<void> sendMessage(String roomId, String content) async {
+    await _repository.sendMessage(roomId, content);
+  }
 }
 
 final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((

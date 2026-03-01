@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/haptics_engine.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_view.dart';
-import '../data/chat_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatRoomScreen extends ConsumerStatefulWidget {
@@ -26,7 +25,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(chatMessagesProvider(widget.roomId));
     final roomAsync = ref.watch(chatControllerProvider).whenData((rooms) {
-      return rooms.firstWhere((room) => room.id == widget.roomId);
+      final matches = rooms.where((room) => room.id == widget.roomId);
+      return matches.isNotEmpty ? matches.first : null;
     });
 
     return Scaffold(
@@ -35,23 +35,31 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: roomAsync.when(
-          data: (room) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                room.roomName,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              SizedBox(
-                height: 4,
-                width: 200, // Constrain width for appbar
-                child: FuseTimerBar(
-                  expirationTimestamp: room.expirationTimestamp,
-                  totalSeconds: room.totalSeconds,
+          data: (room) {
+            if (room == null) {
+              return const Text(
+                'Room Expired',
+                style: TextStyle(color: AppColors.danger),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  room.roomName,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                 ),
-              ),
-            ],
-          ),
+                SizedBox(
+                  height: 4,
+                  width: 200, // Constrain width for appbar
+                  child: FuseTimerBar(
+                    expirationTimestamp: room.expirationTimestamp,
+                    totalSeconds: room.totalSeconds,
+                  ),
+                ),
+              ],
+            );
+          },
           loading: () =>
               const Text('Loading...', style: TextStyle(color: Colors.white54)),
           error: (e, _) =>
@@ -126,17 +134,20 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   onPressed: () async {
                     if (_messageController.text.isNotEmpty) {
                       HapticsEngine.lightImpact();
-                      final repo = ChatRepository();
-                      await repo.sendMessage(
-                        widget.roomId,
-                        _messageController.text,
-                      );
+                      final messageContent = _messageController.text;
                       _messageController.clear();
-                      _scrollController.animateTo(
-                        0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      );
+
+                      await ref
+                          .read(chatControllerProvider.notifier)
+                          .sendMessage(widget.roomId, messageContent);
+
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      }
                     }
                   },
                 ),

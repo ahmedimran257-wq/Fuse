@@ -55,27 +55,19 @@ class FeedScreen extends ConsumerWidget {
               ),
             );
           }
-          return RefreshIndicator(
-            color: AppColors.accent,
-            backgroundColor: AppColors.surface,
-            onRefresh: () async {
-              HapticsEngine.lightImpact();
-              ref.invalidate(feedControllerProvider);
+          return PageView.builder(
+            scrollDirection: Axis.vertical,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: posts.length,
+            onPageChanged: (index) {
+              // Only fires exactly once when the user snaps to a new video
+              final post = posts[index];
+              ref.read(feedControllerProvider.notifier).viewPost(post.id);
             },
-            child: PageView.builder(
-              scrollDirection: Axis.vertical,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: posts.length,
-              onPageChanged: (index) {
-                // Only fires exactly once when the user snaps to a new video
-                final post = posts[index];
-                ref.read(feedControllerProvider.notifier).viewPost(post.id);
-              },
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return PostWidget(post: post); // Clean and safe
-              },
-            ),
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              return PostWidget(post: post); // Clean and safe
+            },
           );
         },
       ),

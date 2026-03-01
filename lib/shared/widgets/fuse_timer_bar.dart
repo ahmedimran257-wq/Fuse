@@ -35,15 +35,18 @@ class _FuseTimerBarState extends State<FuseTimerBar> {
   }
 
   void _calculateTime() {
-    final now = DateTime.now();
-    if (widget.expirationTimestamp.isBefore(now)) {
+    // Lock both times to UTC to prevent Timezone math errors
+    final now = DateTime.now().toUtc();
+    final expiration = widget.expirationTimestamp.toUtc();
+
+    if (expiration.isBefore(now)) {
       if (_timeLeft != Duration.zero) {
         setState(() => _timeLeft = Duration.zero);
-        _timer.cancel(); // Stop ticking if it's dead
+        _timer.cancel();
       }
     } else {
       setState(() {
-        _timeLeft = widget.expirationTimestamp.difference(now);
+        _timeLeft = expiration.difference(now);
       });
     }
   }
