@@ -6,6 +6,8 @@ import 'package:fuse/shared/widgets/premium_button.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 import 'package:fuse/core/utils/haptics_engine.dart';
 import 'package:fuse/core/utils/time_formatter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../domain/post_model.dart';
 import 'feed_controller.dart';
 
@@ -16,7 +18,6 @@ class PostWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remaining = post.remainingSeconds;
     final total = post.baseDurationSeconds;
 
     return Container(
@@ -26,7 +27,18 @@ class PostWidget extends ConsumerWidget {
           // Media content (placeholder)
           Center(
             child: post.mediaUrl != null
-                ? Image.network(post.mediaUrl!, fit: BoxFit.cover)
+                ? CachedNetworkImage(
+                    imageUrl: post.mediaUrl!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(Icons.error, color: AppColors.danger),
+                    ),
+                  )
                 : Container(
                     color: AppColors.surface,
                     child: const Center(
@@ -90,7 +102,7 @@ class PostWidget extends ConsumerWidget {
                   const SizedBox(height: 12),
                   // Timer bar
                   FuseTimerBar(
-                    remainingSeconds: remaining,
+                    expirationTimestamp: post.expirationTimestamp,
                     totalSeconds: total,
                   ),
                   const SizedBox(height: 12),
@@ -126,6 +138,21 @@ class PostWidget extends ConsumerWidget {
                         ' ${post.views}',
                         style: const TextStyle(color: AppColors.textPrimary),
                       ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.share,
+                          color: AppColors.textPrimary,
+                        ),
+                        onPressed: () {
+                          HapticsEngine.lightImpact();
+                          final url = 'fuseapp://post/${post.id}';
+                          // ignore: deprecated_member_use
+                          Share.share(
+                            'Save this post before it explodes! $url',
+                          );
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -145,6 +172,7 @@ class PostWidget extends ConsumerWidget {
                       PremiumButton(
                         text: '💬 Comment',
                         onPressed: () {
+                          HapticsEngine.lightImpact();
                           // Show comment bottom sheet
                           _showCommentSheet(context, ref);
                         },
@@ -184,6 +212,7 @@ class PostWidget extends ConsumerWidget {
                 text: 'Send',
                 onPressed: () {
                   if (controller.text.isNotEmpty) {
+                    HapticsEngine.lightImpact();
                     ref
                         .read(feedControllerProvider.notifier)
                         .commentOnPost(post.id, controller.text);

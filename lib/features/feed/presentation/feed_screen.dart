@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 import 'package:fuse/core/utils/haptics_engine.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/error_view.dart';
 import 'feed_controller.dart';
 import 'post_widget.dart';
 
@@ -28,21 +30,21 @@ class FeedScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () => context.push('/profile'),
+          ),
+          IconButton(
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () => context.push('/chat'),
+            onPressed: () => context.push('/rooms'),
           ),
         ],
       ),
       extendBodyBehindAppBar: true,
       body: postsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
-        ),
-        error: (error, stack) => Center(
-          child: Text(
-            'Error: $error',
-            style: const TextStyle(color: AppColors.textPrimary),
-          ),
+        loading: () => const LoadingIndicator(),
+        error: (error, stack) => ErrorView(
+          message: 'Failed to load posts.\n$error',
+          onRetry: () => ref.refresh(feedControllerProvider),
         ),
         data: (posts) {
           if (posts.isEmpty) {
@@ -53,18 +55,27 @@ class FeedScreen extends ConsumerWidget {
               ),
             );
           }
-          return PageView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: posts.length,
-            onPageChanged: (index) {
-              // Only fires exactly once when the user snaps to a new video
-              final post = posts[index];
-              ref.read(feedControllerProvider.notifier).viewPost(post.id);
+          return RefreshIndicator(
+            color: AppColors.accent,
+            backgroundColor: AppColors.surface,
+            onRefresh: () async {
+              HapticsEngine.lightImpact();
+              ref.invalidate(feedControllerProvider);
             },
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return PostWidget(post: post); // Clean and safe
-            },
+            child: PageView.builder(
+              scrollDirection: Axis.vertical,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: posts.length,
+              onPageChanged: (index) {
+                // Only fires exactly once when the user snaps to a new video
+                final post = posts[index];
+                ref.read(feedControllerProvider.notifier).viewPost(post.id);
+              },
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                return PostWidget(post: post); // Clean and safe
+              },
+            ),
           );
         },
       ),

@@ -5,6 +5,8 @@ import '../../../shared/widgets/fuse_timer_bar.dart';
 import '../../../shared/widgets/premium_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/haptics_engine.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/error_view.dart';
 import '../data/chat_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,7 +46,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                 height: 4,
                 width: 200, // Constrain width for appbar
                 child: FuseTimerBar(
-                  remainingSeconds: room.remainingSeconds,
+                  expirationTimestamp: room.expirationTimestamp,
                   totalSeconds: room.totalSeconds,
                 ),
               ),
@@ -94,14 +96,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   );
                 },
               ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.accent),
-              ),
-              error: (e, _) => Center(
-                child: Text(
-                  'Error: $e',
-                  style: const TextStyle(color: AppColors.danger),
-                ),
+              loading: () => const LoadingIndicator(),
+              error: (e, _) => ErrorView(
+                message: 'Failed to load messages.\n$e',
+                onRetry: () => ref.refresh(chatMessagesProvider(widget.roomId)),
               ),
             ),
           ),

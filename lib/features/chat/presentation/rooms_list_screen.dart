@@ -6,6 +6,8 @@ import '../../../shared/widgets/premium_button.dart';
 import '../../../shared/widgets/fuse_glass_card.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/time_formatter.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/error_view.dart';
 
 class RoomsListScreen extends ConsumerWidget {
   const RoomsListScreen({super.key});
@@ -22,11 +24,19 @@ class RoomsListScreen extends ConsumerWidget {
         elevation: 0,
       ),
       body: roomsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        loading: () => const LoadingIndicator(),
+        error: (error, stack) => ErrorView(
+          message: 'Failed to load rooms.\n$error',
+          onRetry: () => ref.refresh(chatControllerProvider),
+        ),
         data: (rooms) {
           if (rooms.isEmpty) {
-            return const Center(child: Text('No active rooms. Create one!'));
+            return const Center(
+              child: Text(
+                'No active rooms. Create one!',
+                style: TextStyle(color: Colors.white),
+              ),
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),

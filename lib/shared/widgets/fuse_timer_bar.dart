@@ -1,43 +1,110 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_animations.dart';
-import '../../core/theme/app_typography.dart';
-import '../../core/utils/time_formatter.dart';
 
-class FuseTimerBar extends StatelessWidget {
-  final int remainingSeconds;
+import '../../core/theme/app_typography.dart';
+
+class FuseTimerBar extends StatefulWidget {
+  final DateTime
+  expirationTimestamp; // MUST be a DateTime to track absolute real-world time
   final int totalSeconds;
 
   const FuseTimerBar({
     super.key,
-    required this.remainingSeconds,
+    required this.expirationTimestamp,
     required this.totalSeconds,
   });
 
   @override
+  State<FuseTimerBar> createState() => _FuseTimerBarState();
+}
+
+class _FuseTimerBarState extends State<FuseTimerBar> {
+  late Timer _timer;
+  Duration _timeLeft = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateTime();
+    // 30ms refresh rate for the buttery smooth millisecond blur
+    _timer = Timer.periodic(
+      const Duration(milliseconds: 30),
+      (_) => _calculateTime(),
+    );
+  }
+
+  void _calculateTime() {
+    final now = DateTime.now();
+    if (widget.expirationTimestamp.isBefore(now)) {
+      if (_timeLeft != Duration.zero) {
+        setState(() => _timeLeft = Duration.zero);
+        _timer.cancel(); // Stop ticking if it's dead
+      }
+    } else {
+      setState(() {
+        _timeLeft = widget.expirationTimestamp.difference(now);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // Critical to prevent memory leaks when scrolling!
+    super.dispose();
+  }
+
+  // Premium 3-stage color shift
+  Color get _activeColor {
+    if (_timeLeft.inMinutes >= 5) {
+      return AppColors.accentCyan; // Safe (Electric Cyan)
+    }
+    if (_timeLeft.inMinutes >= 1) {
+      return AppColors.accent; // Warning (Blood Orange)
+    }
+    return AppColors.danger; // Critical (Crimson Red)
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Clamp progress between 0 and 1
-    final progress = (remainingSeconds / totalSeconds).clamp(0.0, 1.0);
+    // Clamp progress between 0.0 (empty) and 1.0 (full)
+    final progress = (_timeLeft.inMilliseconds / (widget.totalSeconds * 1000))
+        .clamp(0.0, 1.0);
+
+    // High-precision formatting: MM:SS:ms (e.g. 14:59:82)
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final String minutes = twoDigits(_timeLeft.inMinutes.remainder(60));
+    final String seconds = twoDigits(_timeLeft.inSeconds.remainder(60));
+    final String milliseconds = twoDigits(
+      (_timeLeft.inMilliseconds.remainder(1000) / 10).floor(),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Time text (monospace from AppTypography)
+        // 1. Monospace Digital Readout
         Text(
-          TimeFormatter.formatDuration(Duration(seconds: remainingSeconds)),
+          "$minutes:$seconds:$milliseconds",
           style: AppTypography.timer.copyWith(
-            fontSize: 24, // Optimized for the bar
-            color: progress < 0.2 ? AppColors.danger : AppColors.accent,
+            fontSize: 24,
+            color: _activeColor,
+            shadows: [
+              Shadow(
+                color: _activeColor.withValues(alpha: 0.4),
+                blurRadius: 12.0,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
-        // Glowing progress bar
+
+        // 2. Glowing Physics-Based Depletion Line
         LayoutBuilder(
           builder: (context, constraints) {
             return Stack(
               children: [
-                // Background track
+                // Empty background track
                 Container(
                   height: 4,
                   width: double.infinity,
@@ -46,22 +113,19 @@ class FuseTimerBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                // Glowing progress fill
+                // The glowing active fuse
                 AnimatedContainer(
-                  duration: AppAnimations.medium,
-                  curve: AppAnimations.easeOutExpo,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves
+                      .linear, // Strictly linear so the bar doesn't "bounce" as it shrinks
                   height: 4,
                   width: constraints.maxWidth * progress,
                   decoration: BoxDecoration(
-                    color: progress < 0.2 ? AppColors.danger : AppColors.accent,
+                    color: _activeColor,
                     borderRadius: BorderRadius.circular(2),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            (progress < 0.2
-                                    ? AppColors.danger
-                                    : AppColors.accent)
-                                .withValues(alpha: 0.5),
+                        color: _activeColor.withValues(alpha: 0.6),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),

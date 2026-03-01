@@ -57,7 +57,7 @@ dependencies:
   flutter_animate: ^4.5.0
 
   # Sharing (for rescue links)
-  share_plus: ^10.0.0
+  share_plus: ^12.0.1
 
   # For network images and caching
   cached_network_image: ^3.4.1
@@ -130,3 +130,28 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Inter/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter/Inter-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter/Inter-Black.ttf
+          weight: 900
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf
+          weight: 700

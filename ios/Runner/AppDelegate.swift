@@ -8,6 +8,9 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    if #available(iOS 13.0, *) {
+      self.window?.overrideUserInterfaceStyle = .dark
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

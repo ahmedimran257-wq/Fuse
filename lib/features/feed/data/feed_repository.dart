@@ -8,6 +8,16 @@ class FeedRepository {
 
   FeedRepository(this._client);
 
+  // Fetch a single post
+  Future<Post> getPost(String postId) async {
+    final response = await _client
+        .from('posts')
+        .select()
+        .eq('id', postId)
+        .single();
+    return Post.fromJson(response);
+  }
+
   // Fetch initial alive posts
   Future<List<Post>> fetchAlivePosts() async {
     final response = await _client
@@ -25,6 +35,16 @@ class FeedRepository {
         .from('posts')
         .stream(primaryKey: ['id'])
         .eq('status', 'alive')
+        .order('created_at', ascending: false)
+        .map((events) => events.map((json) => Post.fromJson(json)).toList());
+  }
+
+  // Real-time subscription for immortal posts
+  Stream<List<Post>> subscribeToImmortalPosts() {
+    return _client
+        .from('posts')
+        .stream(primaryKey: ['id'])
+        .eq('status', 'immortal')
         .order('created_at', ascending: false)
         .map((events) => events.map((json) => Post.fromJson(json)).toList());
   }
@@ -61,4 +81,9 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
 final feedStreamProvider = StreamProvider<List<Post>>((ref) {
   final repository = ref.watch(feedRepositoryProvider);
   return repository.subscribeToPosts();
+});
+
+final immortalPostsProvider = StreamProvider<List<Post>>((ref) {
+  final repository = ref.watch(feedRepositoryProvider);
+  return repository.subscribeToImmortalPosts();
 });
