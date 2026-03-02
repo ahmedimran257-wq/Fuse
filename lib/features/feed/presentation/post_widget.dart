@@ -9,6 +9,7 @@ import 'package:fuse/core/utils/time_formatter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fuse/core/providers/auth_user_provider.dart';
 import '../domain/post_model.dart';
 import 'feed_controller.dart';
 
@@ -22,11 +23,69 @@ class PostWidget extends ConsumerWidget {
     final total = post.baseDurationSeconds;
     // Check if the post is liked in the current session
     final isLiked = ref.watch(feedControllerProvider.notifier).isLiked(post.id);
+    final currentUserId = ref.watch(currentUserIdProvider);
 
     return Container(
       color: AppColors.background,
       child: Stack(
         children: [
+          // Delete menu (only for owners)
+          if (post.authorId == currentUserId)
+            Positioned(
+              top: 48,
+              right: 16,
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                color: AppColors.surface,
+                onSelected: (value) async {
+                  if (value == 'delete') {
+                    // Show confirmation dialog
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        title: const Text(
+                          'Delete Post?',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        content: const Text(
+                          'This action cannot be undone.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(color: AppColors.danger),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      ref
+                          .read(feedControllerProvider.notifier)
+                          .deletePost(post.id);
+                    }
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Delete Post',
+                      style: TextStyle(color: AppColors.danger),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Media content (placeholder)
           Center(
             child: post.mediaUrl != null
@@ -218,6 +277,18 @@ class PostWidget extends ConsumerWidget {
                           ref
                               .read(feedControllerProvider.notifier)
                               .likePost(post.id);
+                        },
+                      ),
+
+                      // The Core Mechanic: Donate Time
+                      PremiumButton(
+                        text: '⏱️ +30s',
+                        isPrimary: false,
+                        onPressed: () {
+                          HapticsEngine.heavySuccess(); // Massive dopamine hit
+                          ref
+                              .read(feedControllerProvider.notifier)
+                              .donateTime(post.id, seconds: 30);
                         },
                       ),
                       PremiumButton(

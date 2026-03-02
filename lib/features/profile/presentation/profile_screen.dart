@@ -31,7 +31,10 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Fuse Box'),
+        title: const Text(
+          'Fuse Box',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -39,7 +42,7 @@ class ProfileScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.logout, color: AppColors.danger),
               onPressed: () async {
-                HapticsEngine.heavyImpact(); // Give it weight
+                HapticsEngine.selectionClick();
                 await ref.read(authControllerProvider.notifier).signOut();
               },
             ),

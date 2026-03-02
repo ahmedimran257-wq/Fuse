@@ -84,6 +84,19 @@ class FeedRepository {
       params: {'p_post_id': postId, 'p_type': 'view'},
     );
   }
+
+  Future<void> deletePost(String postId) async {
+    // Delete the row from the database (Supabase RLS ensures they can only delete their own)
+    await _client.from('posts').delete().eq('id', postId);
+  }
+
+  Future<void> donateTime(String postId, {int seconds = 30}) async {
+    // Triggers the backend RPC to add time and update the user's donation stats
+    await _client.rpc(
+      'donate_time',
+      params: {'p_post_id': postId, 'p_seconds': seconds},
+    );
+  }
 }
 
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {

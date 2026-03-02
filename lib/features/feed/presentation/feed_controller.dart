@@ -73,6 +73,28 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
     }
   }
 
+  Future<void> deletePost(String postId) async {
+    try {
+      await _repository.deletePost(postId);
+      // Optimistically remove the post from the UI instantly
+      final currentPosts = state.value ?? [];
+      state = AsyncValue.data(
+        currentPosts.where((p) => p.id != postId).toList(),
+      );
+    } catch (e) {
+      _errorController.add('Failed to delete post.');
+    }
+  }
+
+  Future<void> donateTime(String postId, {int seconds = 30}) async {
+    try {
+      await _repository.donateTime(postId, seconds: seconds);
+      // The Supabase Realtime stream will automatically catch the updated time and refresh the UI!
+    } catch (e) {
+      _errorController.add('Failed to donate time.');
+    }
+  }
+
   @override
   void dispose() {
     _errorController.close();
