@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/presentation/splash_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_animations.dart';
 import '../../features/auth/presentation/auth_controller.dart';
@@ -47,25 +48,31 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation:
         '/login', // 2. Set the starting point to your SignIn screen
     redirect: (context, state) {
+      // 1. Guard for the initial loading state
+      if (authState.status == AuthStatus.initial ||
+          authState.status == AuthStatus.loading) {
+        return '/splash';
+      }
+
       final isLoggedIn = authState.status == AuthStatus.authenticated;
       final isLoggingIn =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
 
-      // 1. If they are not logged in, force them to login
-      if (!isLoggedIn) {
-        return isLoggingIn ? null : '/login';
+      if (!isLoggedIn && !isLoggingIn) {
+        return '/login';
       }
-
-      // 2. If they ARE logged in, and they try to go to the login screen OR the root route ('/'),
-      // forcefully push them into the Feed.
       if (isLoggedIn && (isLoggingIn || state.matchedLocation == '/')) {
         return '/feed';
       }
-
       return null;
     },
     routes: [
+      // Add the splash route here
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       // 3. Register your actual Auth routes
       GoRoute(
         path: '/login',
@@ -177,6 +184,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           state: state,
           child: const ImmortalPostsScreen(),
         ),
+      ),
+      GoRoute(
+        path: '/profile/:userId',
+        pageBuilder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return buildPageWithDefaultTransition(
+            context: context,
+            state: state,
+            child: ProfileScreen(userId: userId),
+          );
+        },
       ),
     ],
   );

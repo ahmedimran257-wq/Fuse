@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/feed_repository.dart';
 import '../domain/post_model.dart';
@@ -10,13 +11,22 @@ final feedControllerProvider =
 
 class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
   final FeedRepository _repository;
+  StreamSubscription<List<Post>>? _subscription;
+
+  final _errorController = StreamController<String>.broadcast();
+  Stream<String> get errorStream => _errorController.stream;
+
+  final _likedPostIds = <String>{};
+  final _viewedPostIds = <String>{};
+
+  bool isLiked(String postId) => _likedPostIds.contains(postId);
 
   FeedController(this._repository) : super(const AsyncValue.loading()) {
     _subscribeToPosts();
   }
 
   void _subscribeToPosts() {
-    _repository.subscribeToPosts().listen(
+    _subscription = _repository.subscribeToPosts().listen(
       (posts) {
         state = AsyncValue.data(posts);
       },
@@ -27,10 +37,19 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
   }
 
   Future<void> likePost(String postId) async {
+    if (_likedPostIds.contains(postId)) return; // Prevent spamming
+
+    _likedPostIds.add(postId); // Optimistic local update
+    state = AsyncValue.data(
+      state.value?.toList() ?? [],
+    ); // Force UI rebuild to show red heart
+
     try {
       await _repository.likePost(postId);
     } catch (e) {
-      // Handle error
+      _likedPostIds.remove(postId); // Rollback on failure
+      _errorController.add('Failed to like. Please try again.');
+      state = AsyncValue.data(state.value?.toList() ?? []); // Revert UI
     }
   }
 
@@ -43,10 +62,21 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
   }
 
   Future<void> viewPost(String postId) async {
+    if (_viewedPostIds.contains(postId)) {
+      return; // Prevent reverse-swipe phantom views
+    }
+    _viewedPostIds.add(postId);
     try {
       await _repository.viewPost(postId);
-    } catch (e) {
-      // Handle error
+    } catch (_) {
+      // Views failing silently is acceptable UX
     }
+  }
+
+  @override
+  void dispose() {
+    _errorController.close();
+    _subscription?.cancel();
+    super.dispose();
   }
 }

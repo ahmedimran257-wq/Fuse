@@ -16,4 +16,11 @@ class AppColors {
   static const Color textSecondary = Color(0xFF9E9E9E);
   // Glass effect overlay (semi-transparent white)
   static const Color glassOverlay = Color(0x1AFFFFFF);
+
+  // Timer stages
+  static const Color timerSafe = Color(0xFF00FF00); // Neon Green
+  static const Color timerWarning = Color(0xFFFFFF00); // Neon Yellow
+  static const Color timerCritical = Color(0xFFFF4500); // Blood Orange
+  // Highlighted surface color for subtle borders/accents
+  static const Color surfaceHighlight = Color(0xFF2C2C2E);
 }

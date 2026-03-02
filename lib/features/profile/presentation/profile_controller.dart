@@ -38,6 +38,14 @@ class ProfileController extends StateNotifier<AsyncValue<UserProfile>> {
   }
 }
 
+final userProfileProvider = FutureProvider.family<UserProfile, String>((
+  ref,
+  userId,
+) async {
+  final repo = ProfileRepository();
+  return await repo.getProfile(userId);
+});
+
 final userPostsProvider = FutureProvider.family<List<Post>, String>((
   ref,
   userId,

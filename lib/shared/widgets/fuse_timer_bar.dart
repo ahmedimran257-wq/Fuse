@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/timer_tick_provider.dart';
 import '../../core/theme/app_colors.dart';
-
 import '../../core/theme/app_typography.dart';
 
-class FuseTimerBar extends StatefulWidget {
-  final DateTime
-  expirationTimestamp; // MUST be a DateTime to track absolute real-world time
+class FuseTimerBar extends ConsumerWidget {
+  final DateTime expirationTimestamp;
   final int totalSeconds;
 
   const FuseTimerBar({
@@ -16,98 +15,63 @@ class FuseTimerBar extends StatefulWidget {
   });
 
   @override
-  State<FuseTimerBar> createState() => _FuseTimerBarState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // THIS IS THE MAGIC: It rebuilds the widget exactly when the global tick fires
+    ref.watch(timerTickProvider);
 
-class _FuseTimerBarState extends State<FuseTimerBar> {
-  late Timer _timer;
-  Duration _timeLeft = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _calculateTime();
-    // 30ms refresh rate for the buttery smooth millisecond blur
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 30),
-      (_) => _calculateTime(),
-    );
-  }
-
-  void _calculateTime() {
-    // Lock both times to UTC to prevent Timezone math errors
+    // Time Math (Using UTC to prevent Timezone death)
     final now = DateTime.now().toUtc();
-    final expiration = widget.expirationTimestamp.toUtc();
+    final expiration = expirationTimestamp.toUtc();
+    final timeLeft = expiration.isAfter(now)
+        ? expiration.difference(now)
+        : Duration.zero;
 
-    if (expiration.isBefore(now)) {
-      if (_timeLeft != Duration.zero) {
-        setState(() => _timeLeft = Duration.zero);
-        _timer.cancel();
-      }
+    // Premium 3-stage color shift
+    Color activeColor;
+    if (timeLeft.inMinutes >= 5) {
+      activeColor = AppColors.timerSafe;
+    } else if (timeLeft.inMinutes >= 1) {
+      activeColor = AppColors.timerWarning;
     } else {
-      setState(() {
-        _timeLeft = expiration.difference(now);
-      });
+      activeColor = AppColors.timerCritical;
     }
-  }
 
-  @override
-  void dispose() {
-    _timer.cancel(); // Critical to prevent memory leaks when scrolling!
-    super.dispose();
-  }
+    // Math for the visual line
+    final progress = (timeLeft.inMilliseconds / (totalSeconds * 1000)).clamp(
+      0.0,
+      1.0,
+    );
 
-  // Premium 3-stage color shift
-  Color get _activeColor {
-    if (_timeLeft.inMinutes >= 5) {
-      return AppColors.accentCyan; // Safe (Electric Cyan)
-    }
-    if (_timeLeft.inMinutes >= 1) {
-      return AppColors.accent; // Warning (Blood Orange)
-    }
-    return AppColors.danger; // Critical (Crimson Red)
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Clamp progress between 0.0 (empty) and 1.0 (full)
-    final progress = (_timeLeft.inMilliseconds / (widget.totalSeconds * 1000))
-        .clamp(0.0, 1.0);
-
-    // High-precision formatting: MM:SS:ms (e.g. 14:59:82)
+    // Monospace text formatting
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final String minutes = twoDigits(_timeLeft.inMinutes.remainder(60));
-    final String seconds = twoDigits(_timeLeft.inSeconds.remainder(60));
+    final String minutes = twoDigits(timeLeft.inMinutes.remainder(60));
+    final String seconds = twoDigits(timeLeft.inSeconds.remainder(60));
     final String milliseconds = twoDigits(
-      (_timeLeft.inMilliseconds.remainder(1000) / 10).floor(),
+      (timeLeft.inMilliseconds.remainder(1000) / 10).floor(),
     );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 1. Monospace Digital Readout
         Text(
           "$minutes:$seconds:$milliseconds",
-          style: AppTypography.timer.copyWith(
+          style: AppTypography.timerDisplay.copyWith(
             fontSize: 24,
-            color: _activeColor,
+            color: activeColor,
             shadows: [
               Shadow(
-                color: _activeColor.withValues(alpha: 0.4),
+                color: activeColor.withValues(alpha: 0.4),
                 blurRadius: 12.0,
               ),
             ],
           ),
         ),
         const SizedBox(height: 8),
-
-        // 2. Glowing Physics-Based Depletion Line
         LayoutBuilder(
           builder: (context, constraints) {
             return Stack(
               children: [
-                // Empty background track
                 Container(
                   height: 4,
                   width: double.infinity,
@@ -116,19 +80,17 @@ class _FuseTimerBarState extends State<FuseTimerBar> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                // The glowing active fuse
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  curve: Curves
-                      .linear, // Strictly linear so the bar doesn't "bounce" as it shrinks
+                  duration: const Duration(milliseconds: 30),
+                  curve: Curves.linear,
                   height: 4,
                   width: constraints.maxWidth * progress,
                   decoration: BoxDecoration(
-                    color: _activeColor,
+                    color: activeColor,
                     borderRadius: BorderRadius.circular(2),
                     boxShadow: [
                       BoxShadow(
-                        color: _activeColor.withValues(alpha: 0.6),
+                        color: activeColor.withValues(alpha: 0.6),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),

@@ -6,12 +6,8 @@ import 'post_widget.dart';
 import '../domain/post_model.dart';
 import 'package:go_router/go_router.dart';
 
-final singlePostProvider = FutureProvider.family<Post, String>((
-  ref,
-  postId,
-) async {
-  final repository = ref.watch(feedRepositoryProvider);
-  return repository.getPost(postId);
+final singlePostProvider = StreamProvider.family<Post, String>((ref, postId) {
+  return ref.watch(feedRepositoryProvider).subscribeToSinglePost(postId);
 });
 
 class SinglePostScreen extends ConsumerWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_controller.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../../../shared/widgets/fuse_glass_card.dart';
 import '../../../shared/widgets/premium_button.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,15 +10,23 @@ import '../../../core/utils/haptics_engine.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../core/utils/time_formatter.dart';
 
 class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(profileControllerProvider);
-    final userId = Supabase.instance.client.auth.currentUser!.id;
-    final postsAsync = ref.watch(userPostsProvider(userId));
+    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
+    final targetUserId = userId ?? currentUserId;
+    final isOwnProfile = targetUserId == currentUserId;
+
+    final profileAsync = isOwnProfile
+        ? ref.watch(profileControllerProvider)
+        : ref.watch(userProfileProvider(targetUserId));
+    final postsAsync = ref.watch(userPostsProvider(targetUserId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -25,12 +34,24 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Fuse Box'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (isOwnProfile)
+            IconButton(
+              icon: const Icon(Icons.logout, color: AppColors.danger),
+              onPressed: () async {
+                HapticsEngine.heavyImpact(); // Give it weight
+                await ref.read(authControllerProvider.notifier).signOut();
+              },
+            ),
+        ],
       ),
       body: profileAsync.when(
         loading: () => const LoadingIndicator(),
         error: (error, stack) => ErrorView(
           message: 'Failed to load profile.\n$error',
-          onRetry: () => ref.refresh(profileControllerProvider),
+          onRetry: () => isOwnProfile
+              ? ref.refresh(profileControllerProvider)
+              : ref.refresh(userProfileProvider(targetUserId)),
         ),
         data: (profile) {
           return SingleChildScrollView(
@@ -51,12 +72,31 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        profile.username,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          color: AppColors.textPrimary,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            profile.username,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (isOwnProfile)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit,
+                                color: AppColors.textSecondary,
+                                size: 18,
+                              ),
+                              onPressed: () => _showEditUsernameDialog(
+                                context,
+                                ref,
+                                profile.username,
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       // Stats
@@ -64,12 +104,16 @@ class ProfileScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildStat(
-                            'Time Donated (Week)',
-                            '${profile.timeDonatedWeek}s',
+                            'Donated (Week)',
+                            TimeFormatter.formatDuration(
+                              Duration(seconds: profile.timeDonatedWeek),
+                            ),
                           ),
                           _buildStat(
                             'Total Donated',
-                            '${profile.timeDonatedTotal}s',
+                            TimeFormatter.formatDuration(
+                              Duration(seconds: profile.timeDonatedTotal),
+                            ),
                           ),
                           _buildStat(
                             'Revive Tokens',
@@ -103,49 +147,44 @@ class ProfileScreen extends ConsumerWidget {
                         style: TextStyle(color: AppColors.textPrimary),
                       );
                     }
-                    return ListView.builder(
+                    return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemCount: posts.length,
                       itemBuilder: (context, index) {
                         final post = posts[index];
-                        return FuseGlassCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                post.mediaUrl ?? 'Text Post',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Status: ${post.status}',
-                                style: TextStyle(
-                                  color: post.status == 'alive'
-                                      ? AppColors.accent
-                                      : post.status == 'dead'
-                                      ? AppColors.danger
-                                      : AppColors.accentCyan,
-                                ),
-                              ),
-                              if (post.status == 'dead' &&
-                                  profile.reviveTokens > 0)
-                                PremiumButton(
-                                  text: 'Use Revive Token',
-                                  onPressed: () async {
-                                    HapticsEngine.heavyImpact();
-                                    await ref
-                                        .read(
-                                          profileControllerProvider.notifier,
-                                        )
-                                        .useReviveToken(post.id);
-                                    // Force the list to redraw
-                                    ref.invalidate(userPostsProvider(userId));
-                                  },
-                                ),
-                            ],
+                        return GestureDetector(
+                          onTap: () => context.push('/post/${post.id}'),
+                          child: Card(
+                            color: AppColors.surface,
+                            clipBehavior: Clip.antiAlias,
+                            child: post.mediaUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: post.mediaUrl!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: AppColors.surfaceHighlight,
+                                    ),
+                                    errorWidget: (_, __, ___) => const Icon(
+                                      Icons.broken_image,
+                                      color: AppColors.danger,
+                                    ),
+                                  )
+                                : Container(
+                                    color: AppColors.surfaceHighlight,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.text_fields,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         );
                       },
@@ -159,6 +198,57 @@ class ProfileScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showEditUsernameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String currentName,
+  ) {
+    final controller = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text(
+          'Edit Username',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.accent),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.accent),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          PremiumButton(
+            text: 'Save',
+            onPressed: () {
+              if (controller.text.isNotEmpty &&
+                  controller.text != currentName) {
+                ref
+                    .read(profileControllerProvider.notifier)
+                    .updateUsername(controller.text);
+              }
+              Navigator.pop(ctx);
+            },
+          ),
+        ],
       ),
     );
   }

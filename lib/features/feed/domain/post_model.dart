@@ -12,6 +12,7 @@ class Post with _$Post {
     @JsonKey(name: 'author_id') required String authorId,
     @JsonKey(name: 'media_url') String? mediaUrl,
     @JsonKey(name: 'content_type') @Default('image') String contentType,
+    @JsonKey(name: 'caption') String? caption,
     @JsonKey(name: 'base_duration_seconds')
     @Default(900)
     int baseDurationSeconds,

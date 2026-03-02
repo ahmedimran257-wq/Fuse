@@ -28,6 +28,8 @@ mixin _$Post {
   String? get mediaUrl => throw _privateConstructorUsedError;
   @JsonKey(name: 'content_type')
   String get contentType => throw _privateConstructorUsedError;
+  @JsonKey(name: 'caption')
+  String? get caption => throw _privateConstructorUsedError;
   @JsonKey(name: 'base_duration_seconds')
   int get baseDurationSeconds => throw _privateConstructorUsedError;
   @JsonKey(name: 'expiration_timestamp')
@@ -62,6 +64,7 @@ abstract class $PostCopyWith<$Res> {
     @JsonKey(name: 'author_id') String authorId,
     @JsonKey(name: 'media_url') String? mediaUrl,
     @JsonKey(name: 'content_type') String contentType,
+    @JsonKey(name: 'caption') String? caption,
     @JsonKey(name: 'base_duration_seconds') int baseDurationSeconds,
     @JsonKey(name: 'expiration_timestamp') DateTime expirationTimestamp,
     String status,
@@ -93,6 +96,7 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
     Object? authorId = null,
     Object? mediaUrl = freezed,
     Object? contentType = null,
+    Object? caption = freezed,
     Object? baseDurationSeconds = null,
     Object? expirationTimestamp = null,
     Object? status = null,
@@ -121,6 +125,10 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
                 ? _value.contentType
                 : contentType // ignore: cast_nullable_to_non_nullable
                       as String,
+            caption: freezed == caption
+                ? _value.caption
+                : caption // ignore: cast_nullable_to_non_nullable
+                      as String?,
             baseDurationSeconds: null == baseDurationSeconds
                 ? _value.baseDurationSeconds
                 : baseDurationSeconds // ignore: cast_nullable_to_non_nullable
@@ -176,6 +184,7 @@ abstract class _$$PostImplCopyWith<$Res> implements $PostCopyWith<$Res> {
     @JsonKey(name: 'author_id') String authorId,
     @JsonKey(name: 'media_url') String? mediaUrl,
     @JsonKey(name: 'content_type') String contentType,
+    @JsonKey(name: 'caption') String? caption,
     @JsonKey(name: 'base_duration_seconds') int baseDurationSeconds,
     @JsonKey(name: 'expiration_timestamp') DateTime expirationTimestamp,
     String status,
@@ -204,6 +213,7 @@ class __$$PostImplCopyWithImpl<$Res>
     Object? authorId = null,
     Object? mediaUrl = freezed,
     Object? contentType = null,
+    Object? caption = freezed,
     Object? baseDurationSeconds = null,
     Object? expirationTimestamp = null,
     Object? status = null,
@@ -232,6 +242,10 @@ class __$$PostImplCopyWithImpl<$Res>
             ? _value.contentType
             : contentType // ignore: cast_nullable_to_non_nullable
                   as String,
+        caption: freezed == caption
+            ? _value.caption
+            : caption // ignore: cast_nullable_to_non_nullable
+                  as String?,
         baseDurationSeconds: null == baseDurationSeconds
             ? _value.baseDurationSeconds
             : baseDurationSeconds // ignore: cast_nullable_to_non_nullable
@@ -281,6 +295,7 @@ class _$PostImpl extends _Post {
     @JsonKey(name: 'author_id') required this.authorId,
     @JsonKey(name: 'media_url') this.mediaUrl,
     @JsonKey(name: 'content_type') this.contentType = 'image',
+    @JsonKey(name: 'caption') this.caption,
     @JsonKey(name: 'base_duration_seconds') this.baseDurationSeconds = 900,
     @JsonKey(name: 'expiration_timestamp') required this.expirationTimestamp,
     required this.status,
@@ -306,6 +321,9 @@ class _$PostImpl extends _Post {
   @override
   @JsonKey(name: 'content_type')
   final String contentType;
+  @override
+  @JsonKey(name: 'caption')
+  final String? caption;
   @override
   @JsonKey(name: 'base_duration_seconds')
   final int baseDurationSeconds;
@@ -335,7 +353,7 @@ class _$PostImpl extends _Post {
 
   @override
   String toString() {
-    return 'Post(id: $id, authorId: $authorId, mediaUrl: $mediaUrl, contentType: $contentType, baseDurationSeconds: $baseDurationSeconds, expirationTimestamp: $expirationTimestamp, status: $status, everDead: $everDead, immortalizedAt: $immortalizedAt, createdAt: $createdAt, likes: $likes, comments: $comments, views: $views)';
+    return 'Post(id: $id, authorId: $authorId, mediaUrl: $mediaUrl, contentType: $contentType, caption: $caption, baseDurationSeconds: $baseDurationSeconds, expirationTimestamp: $expirationTimestamp, status: $status, everDead: $everDead, immortalizedAt: $immortalizedAt, createdAt: $createdAt, likes: $likes, comments: $comments, views: $views)';
   }
 
   @override
@@ -350,6 +368,7 @@ class _$PostImpl extends _Post {
                 other.mediaUrl == mediaUrl) &&
             (identical(other.contentType, contentType) ||
                 other.contentType == contentType) &&
+            (identical(other.caption, caption) || other.caption == caption) &&
             (identical(other.baseDurationSeconds, baseDurationSeconds) ||
                 other.baseDurationSeconds == baseDurationSeconds) &&
             (identical(other.expirationTimestamp, expirationTimestamp) ||
@@ -375,6 +394,7 @@ class _$PostImpl extends _Post {
     authorId,
     mediaUrl,
     contentType,
+    caption,
     baseDurationSeconds,
     expirationTimestamp,
     status,
@@ -406,6 +426,7 @@ abstract class _Post extends Post {
     @JsonKey(name: 'author_id') required final String authorId,
     @JsonKey(name: 'media_url') final String? mediaUrl,
     @JsonKey(name: 'content_type') final String contentType,
+    @JsonKey(name: 'caption') final String? caption,
     @JsonKey(name: 'base_duration_seconds') final int baseDurationSeconds,
     @JsonKey(name: 'expiration_timestamp')
     required final DateTime expirationTimestamp,
@@ -432,6 +453,9 @@ abstract class _Post extends Post {
   @override
   @JsonKey(name: 'content_type')
   String get contentType;
+  @override
+  @JsonKey(name: 'caption')
+  String? get caption;
   @override
   @JsonKey(name: 'base_duration_seconds')
   int get baseDurationSeconds;

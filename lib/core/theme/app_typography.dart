@@ -81,4 +81,11 @@ class AppTypography {
     fontSize: 48,
     letterSpacing: 2,
   );
+
+  static TextStyle get timerDisplay => const TextStyle(
+    fontFamily: monoFamily,
+    fontWeight: FontWeight.w700,
+    fontSize: 24,
+    letterSpacing: 2,
+  );
 }

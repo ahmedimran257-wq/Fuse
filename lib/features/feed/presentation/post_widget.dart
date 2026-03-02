@@ -8,6 +8,7 @@ import 'package:fuse/core/utils/haptics_engine.dart';
 import 'package:fuse/core/utils/time_formatter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../domain/post_model.dart';
 import 'feed_controller.dart';
 
@@ -19,6 +20,8 @@ class PostWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final total = post.baseDurationSeconds;
+    // Check if the post is liked in the current session
+    final isLiked = ref.watch(feedControllerProvider.notifier).isLiked(post.id);
 
     return Container(
       color: AppColors.background,
@@ -76,35 +79,77 @@ class PostWidget extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Author and timestamp
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppColors.accent,
-                        child: Icon(
-                          Icons.person,
-                          size: 16,
+                  GestureDetector(
+                    onTap: () => context.push('/profile/${post.authorId}'),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.accent,
+                          child: Icon(
+                            Icons.person,
+                            size: 16,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'User ${post.authorId.substring(0, 6)}',
+                          style: const TextStyle(color: AppColors.textPrimary),
+                        ),
+                        const Spacer(),
+                        Text(
+                          TimeFormatter.formatTimestamp(post.createdAt),
+                          style: const TextStyle(color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (post.caption != null && post.caption!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 16),
+                      child: Text(
+                        post.caption!,
+                        style: const TextStyle(
                           color: AppColors.textPrimary,
+                          fontSize: 15,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'User ${post.authorId.substring(0, 6)}',
-                        style: const TextStyle(color: AppColors.textPrimary),
-                      ),
-                      const Spacer(),
-                      Text(
-                        TimeFormatter.formatTimestamp(post.createdAt),
-                        style: const TextStyle(color: AppColors.textPrimary),
-                      ),
-                    ],
-                  ),
+                    ),
                   const SizedBox(height: 12),
                   // Timer bar
-                  FuseTimerBar(
-                    expirationTimestamp: post.expirationTimestamp,
-                    totalSeconds: total,
-                  ),
+                  post.status == 'immortal'
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.all_inclusive,
+                              color: AppColors.timerSafe,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'IMMORTAL',
+                              style: TextStyle(
+                                color: AppColors.timerSafe,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                                shadows: [
+                                  Shadow(
+                                    color: AppColors.timerSafe.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : FuseTimerBar(
+                          expirationTimestamp: post.expirationTimestamp,
+                          totalSeconds: total,
+                        ),
                   const SizedBox(height: 12),
                   // Interaction stats
                   Row(
@@ -160,10 +205,16 @@ class PostWidget extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      PremiumButton(
-                        text: '❤️ Like',
+                      IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked
+                              ? AppColors.timerCritical
+                              : Colors.white,
+                          size: 32,
+                        ),
                         onPressed: () {
-                          HapticsEngine.lightImpact();
+                          HapticsEngine.selectionClick();
                           ref
                               .read(feedControllerProvider.notifier)
                               .likePost(post.id);
@@ -216,7 +267,7 @@ class PostWidget extends ConsumerWidget {
                     ref
                         .read(feedControllerProvider.notifier)
                         .commentOnPost(post.id, controller.text);
-                    Navigator.pop(context);
+                    Navigator.pop(ctx);
                   }
                 },
               ),

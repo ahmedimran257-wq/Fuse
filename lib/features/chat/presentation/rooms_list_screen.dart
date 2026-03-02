@@ -48,7 +48,7 @@ class RoomsListScreen extends ConsumerWidget {
                   .inSeconds;
               return GestureDetector(
                 onTap: () {
-                  context.push('/chat/room', extra: room.id);
+                  context.push('/chat/${room.id}');
                 },
                 child: FuseGlassCard(
                   child: Padding(

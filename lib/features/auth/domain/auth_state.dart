@@ -20,10 +20,11 @@ class AuthState {
     AuthStatus? status,
     String? errorMessage,
     String? email,
+    bool clearError = false,
   }) {
     return AuthState(
       status: status ?? this.status,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       email: email ?? this.email,
     );
   }

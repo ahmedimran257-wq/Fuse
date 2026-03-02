@@ -49,6 +49,18 @@ class FeedRepository {
         .map((events) => events.map((json) => Post.fromJson(json)).toList());
   }
 
+  // Real-time subscription for a single post
+  Stream<Post> subscribeToSinglePost(String postId) {
+    return _client
+        .from('posts')
+        .stream(primaryKey: ['id'])
+        .eq('id', postId)
+        .map((rows) {
+          if (rows.isEmpty) throw Exception('Post not found');
+          return Post.fromJson(rows.first);
+        });
+  }
+
   // Like a post (call RPC)
   Future<void> likePost(String postId) async {
     await _client.rpc(
