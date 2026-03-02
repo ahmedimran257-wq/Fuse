@@ -58,5 +58,11 @@
 	<false/>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleLightContent</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Fuse needs camera access so you can create and share ephemeral posts.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fuse uses your microphone to record audio for video posts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fuse needs photo library access so you can upload existing images from your gallery.</string>
 </dict>
 </plist>

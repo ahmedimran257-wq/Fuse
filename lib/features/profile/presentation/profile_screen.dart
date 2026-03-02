@@ -168,10 +168,10 @@ class ProfileScreen extends ConsumerWidget {
                                 ? CachedNetworkImage(
                                     imageUrl: post.mediaUrl!,
                                     fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
+                                    placeholder: (_, _) => Container(
                                       color: AppColors.surfaceHighlight,
                                     ),
-                                    errorWidget: (_, __, ___) => const Icon(
+                                    errorWidget: (_, _, _) => const Icon(
                                       Icons.broken_image,
                                       color: AppColors.danger,
                                     ),
