@@ -12,6 +12,9 @@ _$PostImpl _$$PostImplFromJson(Map<String, dynamic> json) => _$PostImpl(
   mediaUrl: json['media_url'] as String?,
   contentType: json['content_type'] as String? ?? 'image',
   caption: json['caption'] as String?,
+  author: json['profiles'] == null
+      ? null
+      : PostAuthor.fromJson(json['profiles'] as Map<String, dynamic>),
   baseDurationSeconds: (json['base_duration_seconds'] as num?)?.toInt() ?? 900,
   expirationTimestamp: DateTime.parse(json['expiration_timestamp'] as String),
   status: json['status'] as String,
@@ -32,6 +35,7 @@ Map<String, dynamic> _$$PostImplToJson(_$PostImpl instance) =>
       'media_url': instance.mediaUrl,
       'content_type': instance.contentType,
       'caption': instance.caption,
+      'profiles': instance.author,
       'base_duration_seconds': instance.baseDurationSeconds,
       'expiration_timestamp': instance.expirationTimestamp.toIso8601String(),
       'status': instance.status,

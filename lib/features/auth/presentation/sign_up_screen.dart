@@ -42,6 +42,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             backgroundColor: AppColors.danger,
           ),
         );
+      } else if (previous?.status != AuthStatus.authenticated &&
+          next.status == AuthStatus.authenticated) {
+        // Only route to onboarding on a FRESH signup success
+        context.go('/onboarding');
       }
     });
 

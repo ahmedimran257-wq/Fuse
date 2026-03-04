@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuse/core/network/supabase_client.dart';
 import '../domain/post_model.dart';
+import '../domain/comment_model.dart';
 
 class FeedRepository {
   final SupabaseClient _client;
@@ -18,25 +20,59 @@ class FeedRepository {
     return Post.fromJson(response);
   }
 
-  // Fetch initial alive posts
-  Future<List<Post>> fetchAlivePosts() async {
+  // 1. The Paginated Join Query (Fetches Post + Author Profile)
+  Future<List<Post>> fetchAlivePosts({int page = 0, int pageSize = 20}) async {
+    final from = page * pageSize;
+    final to = from + pageSize - 1;
     final response = await _client
         .from('posts')
-        .select()
+        .select(
+          '*, profiles!author_id(id, username, avatar_url)',
+        ) // JOIN MAGIC HERE!
         .eq('status', 'alive')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .range(from, to);
 
     return (response as List).map((json) => Post.fromJson(json)).toList();
   }
 
-  // Real-time subscription for new posts and updates
+  // 2. The Bulletproof Realtime Channel
   Stream<List<Post>> subscribeToPosts() {
-    return _client
-        .from('posts')
-        .stream(primaryKey: ['id'])
-        .eq('status', 'alive')
-        .order('created_at', ascending: false)
-        .map((events) => events.map((json) => Post.fromJson(json)).toList());
+    final controller = StreamController<List<Post>>.broadcast();
+
+    // Fire the initial load instantly
+    fetchAlivePosts()
+        .then((posts) {
+          if (!controller.isClosed) controller.add(posts);
+        })
+        .catchError((e) {
+          if (!controller.isClosed) controller.addError(e);
+        });
+
+    // Listen to changes quietly in the background
+    final channel = _client
+        .channel('public:posts')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          callback: (payload) async {
+            // Whenever ANY post is liked, killed, or created, quietly fetch the fresh joined data
+            if (!controller.isClosed) {
+              final posts = await fetchAlivePosts();
+              controller.add(posts);
+            }
+          },
+        )
+        .subscribe();
+
+    // Clean up connection to save battery
+    controller.onCancel = () {
+      _client.removeChannel(channel);
+      controller.close();
+    };
+
+    return controller.stream;
   }
 
   // Real-time subscription for immortal posts
@@ -96,6 +132,37 @@ class FeedRepository {
       'donate_time',
       params: {'p_post_id': postId, 'p_seconds': seconds},
     );
+  }
+
+  Stream<List<Comment>> subscribeToComments(String postId) {
+    return _client
+        .from('post_interactions')
+        .stream(primaryKey: ['id'])
+        .eq('post_id', postId)
+        .order('created_at', ascending: true) // Oldest at top, newest at bottom
+        .map(
+          (rows) => rows
+              .where((j) => j['type'] == 'comment')
+              .map((j) => Comment.fromJson(j))
+              .toList(),
+        );
+  }
+
+  Future<void> addComment(String postId, String userId, String text) async {
+    await _client.from('post_interactions').insert({
+      'post_id': postId,
+      'user_id': userId,
+      'type': 'comment',
+      'content': text,
+    });
+  }
+
+  Future<void> reportPost(String userId, String postId, String reason) async {
+    await _client.from('reports').insert({
+      'reporter_id': userId,
+      'post_id': postId,
+      'reason': reason,
+    });
   }
 }
 

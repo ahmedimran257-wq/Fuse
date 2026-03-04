@@ -12,19 +12,22 @@ class CreationController extends StateNotifier<AsyncValue<void>> {
   final PostCreationRepository _repository;
   CreationController(this._repository) : super(const AsyncValue.data(null));
 
-  Future<bool> uploadPost({
-    required String imagePath,
-    required String caption,
-  }) async {
+  Future<bool> uploadPost(
+    String path,
+    String contentType,
+    String caption,
+    int baseDurationSeconds,
+  ) async {
     state = const AsyncValue.loading();
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
-      final file = File(imagePath);
+      final file = File(path);
       final mediaUrl = await _repository.uploadMedia(file, userId);
       await _repository.createPost(
         authorId: userId,
         mediaUrl: mediaUrl,
-        contentType: 'image',
+        contentType: contentType,
+        baseDurationSeconds: baseDurationSeconds,
         caption: caption,
       );
       state = const AsyncValue.data(null);

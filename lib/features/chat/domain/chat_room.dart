@@ -1,35 +1,34 @@
-class ChatRoom {
-  final String id;
-  final String roomName;
-  final String creatorId;
-  final DateTime expirationTimestamp;
-  final DateTime maxExpirationTimestamp;
-  final DateTime createdAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  ChatRoom({
-    required this.id,
-    required this.roomName,
-    required this.creatorId,
-    required this.expirationTimestamp,
-    required this.maxExpirationTimestamp,
-    required this.createdAt,
-  });
+part 'chat_room.freezed.dart';
+part 'chat_room.g.dart';
 
-  factory ChatRoom.fromJson(Map<String, dynamic> json) {
-    return ChatRoom(
-      id: json['id'],
-      roomName: json['room_name'],
-      creatorId: json['creator_id'],
-      expirationTimestamp: DateTime.parse(json['expiration_timestamp']),
-      maxExpirationTimestamp: DateTime.parse(json['max_expiration_timestamp']),
-      createdAt: DateTime.parse(json['created_at']),
-    );
+@freezed
+class ChatRoom with _$ChatRoom {
+  const ChatRoom._(); // Required to add custom getters to a Freezed class
+
+  const factory ChatRoom({
+    required String id,
+    @JsonKey(name: 'room_name') required String roomName,
+    @JsonKey(name: 'creator_id') required String creatorId,
+    @JsonKey(name: 'expiration_timestamp')
+    required DateTime expirationTimestamp,
+    @JsonKey(name: 'max_expiration_timestamp')
+    required DateTime maxExpirationTimestamp,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+  }) = _ChatRoom;
+
+  factory ChatRoom.fromJson(Map<String, dynamic> json) =>
+      _$ChatRoomFromJson(json);
+
+  int get remainingSeconds {
+    final diff = expirationTimestamp
+        .difference(DateTime.now().toUtc())
+        .inSeconds;
+    return diff > 0 ? diff : 0;
   }
 
-  int get remainingSeconds => expirationTimestamp
-      .difference(DateTime.now())
-      .inSeconds
-      .clamp(0, maxExpirationTimestamp.difference(createdAt).inSeconds);
-  int get totalSeconds =>
-      maxExpirationTimestamp.difference(createdAt).inSeconds;
+  int get totalSeconds {
+    return maxExpirationTimestamp.difference(createdAt).inSeconds;
+  }
 }

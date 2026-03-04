@@ -5,7 +5,9 @@ class PostCreationRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
   Future<String> uploadMedia(File file, String userId) async {
-    final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final extension = file.path.split('.').last;
+    final fileName =
+        '$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
     await _client.storage.from('posts').upload(fileName, file);
     return _client.storage.from('posts').getPublicUrl(fileName);
   }
@@ -14,10 +16,10 @@ class PostCreationRepository {
     required String authorId,
     required String mediaUrl,
     required String contentType,
-    int baseDurationSeconds = 900,
+    required int baseDurationSeconds,
     String? caption,
   }) async {
-    final expiration = DateTime.now().add(
+    final expiration = DateTime.now().toUtc().add(
       Duration(seconds: baseDurationSeconds),
     );
     await _client.from('posts').insert({

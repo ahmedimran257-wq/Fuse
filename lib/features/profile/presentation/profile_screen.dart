@@ -12,6 +12,7 @@ import '../../../shared/widgets/error_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/utils/time_formatter.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends ConsumerWidget {
   final String? userId;
@@ -65,15 +66,68 @@ class ProfileScreen extends ConsumerWidget {
                 FuseGlassCard(
                   child: Column(
                     children: [
-                      const CircleAvatar(
-                        radius: 40,
-                        backgroundColor: AppColors.accent,
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: AppColors.textPrimary,
+                      if (isOwnProfile)
+                        GestureDetector(
+                          onTap: () async {
+                            HapticsEngine.selectionClick();
+                            final picker = ImagePicker();
+                            final file = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 70,
+                            );
+                            if (file != null) {
+                              ref
+                                  .read(profileControllerProvider.notifier)
+                                  .updateAvatar(file.path);
+                            }
+                          },
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundColor: AppColors.surfaceHighlight,
+                                backgroundImage: profile.avatarUrl != null
+                                    ? NetworkImage(profile.avatarUrl!)
+                                    : null,
+                                child: profile.avatarUrl == null
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 40,
+                                        color: Colors.white54,
+                                      )
+                                    : null,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: AppColors.surfaceHighlight,
+                          backgroundImage: profile.avatarUrl != null
+                              ? NetworkImage(profile.avatarUrl!)
+                              : null,
+                          child: profile.avatarUrl == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.white54,
+                                )
+                              : null,
                         ),
-                      ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

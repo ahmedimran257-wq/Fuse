@@ -1,28 +1,23 @@
-class UserProfile {
-  final String id;
-  final String username;
-  final int timeDonatedWeek;
-  final int timeDonatedTotal;
-  final int reviveTokens;
-  final DateTime createdAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  UserProfile({
-    required this.id,
-    required this.username,
-    required this.timeDonatedWeek,
-    required this.timeDonatedTotal,
-    required this.reviveTokens,
-    required this.createdAt,
-  });
+part 'user_profile.freezed.dart';
+part 'user_profile.g.dart';
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      id: json['id'],
-      username: json['username'],
-      timeDonatedWeek: json['time_donated_week'] ?? 0,
-      timeDonatedTotal: json['time_donated_total'] ?? 0,
-      reviveTokens: json['revive_tokens'] ?? 1,
-      createdAt: DateTime.parse(json['created_at']),
-    );
-  }
+@freezed
+class UserProfile with _$UserProfile {
+  const factory UserProfile({
+    required String id,
+    required String username,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
+    @JsonKey(name: 'revive_tokens') @Default(0) int reviveTokens,
+    @JsonKey(name: 'time_donated_week') @Default(0) int timeDonatedWeek,
+    @JsonKey(name: 'time_donated_total') @Default(0) int timeDonatedTotal,
+    @JsonKey(name: 'post_count') @Default(0) int postCount,
+    @JsonKey(name: 'follower_count') @Default(0) int followerCount,
+    @JsonKey(name: 'following_count') @Default(0) int followingCount,
+    @JsonKey(name: 'donation_streak') @Default(0) int donationStreak,
+  }) = _UserProfile;
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileFromJson(json);
 }

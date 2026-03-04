@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../post_creation/domain/post_author.dart';
 
 part 'post_model.freezed.dart';
 part 'post_model.g.dart';
@@ -13,6 +14,7 @@ class Post with _$Post {
     @JsonKey(name: 'media_url') String? mediaUrl,
     @JsonKey(name: 'content_type') @Default('image') String contentType,
     @JsonKey(name: 'caption') String? caption,
+    @JsonKey(name: 'profiles') PostAuthor? author,
     @JsonKey(name: 'base_duration_seconds')
     @Default(900)
     int baseDurationSeconds,

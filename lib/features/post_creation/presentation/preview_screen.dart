@@ -7,9 +7,16 @@ import 'package:fuse/shared/widgets/premium_button.dart';
 import 'package:fuse/shared/widgets/fuse_glass_card.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 
+import 'package:fuse/shared/widgets/fuse_video_player.dart';
+
 class PreviewScreen extends ConsumerStatefulWidget {
   final String imagePath;
-  const PreviewScreen({super.key, required this.imagePath});
+  final String contentType;
+  const PreviewScreen({
+    super.key,
+    required this.imagePath,
+    this.contentType = 'image',
+  });
 
   @override
   ConsumerState<PreviewScreen> createState() => _PreviewScreenState();
@@ -17,6 +24,7 @@ class PreviewScreen extends ConsumerStatefulWidget {
 
 class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   final _captionController = TextEditingController();
+  int _selectedDuration = 900; // Default 15 minutes
 
   @override
   void dispose() {
@@ -47,11 +55,13 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: widget.imagePath.isNotEmpty
-                        ? Image.file(File(widget.imagePath), fit: BoxFit.cover)
-                        : const Center(
+                    child: widget.imagePath.isEmpty
+                        ? const Center(
                             child: Icon(Icons.error, color: Colors.white),
-                          ),
+                          )
+                        : widget.contentType == 'video'
+                        ? FuseVideoPlayer(file: File(widget.imagePath))
+                        : Image.file(File(widget.imagePath), fit: BoxFit.cover),
                   ),
                   if (state.isLoading)
                     Container(
@@ -93,6 +103,59 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                         ),
                       ),
                     ),
+
+                  // The Duration Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children:
+                          {
+                            '5m': 300,
+                            '15m': 900,
+                            '30m': 1800,
+                            '1h': 3600,
+                            '6h': 21600,
+                          }.entries.map((e) {
+                            final isSelected = _selectedDuration == e.value;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setState(() => _selectedDuration = e.value),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.only(
+                                  right: 8,
+                                  bottom: 12,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.accent
+                                      : AppColors.surfaceHighlight,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.accent
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                                child: Text(
+                                  e.key,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                    ),
+                  ),
+
                   TextField(
                     controller: _captionController,
                     decoration: const InputDecoration(
@@ -109,8 +172,10 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                       ref
                           .read(creationControllerProvider.notifier)
                           .uploadPost(
-                            imagePath: widget.imagePath,
-                            caption: _captionController.text,
+                            widget.imagePath,
+                            widget.contentType,
+                            _captionController.text,
+                            _selectedDuration,
                           );
                     },
                   ),

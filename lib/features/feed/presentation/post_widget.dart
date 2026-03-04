@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fuse/core/providers/auth_user_provider.dart';
 import '../domain/post_model.dart';
+import '../data/feed_repository.dart';
 import 'feed_controller.dart';
 
 class PostWidget extends ConsumerWidget {
@@ -29,63 +30,86 @@ class PostWidget extends ConsumerWidget {
       color: AppColors.background,
       child: Stack(
         children: [
-          // Delete menu (only for owners)
-          if (post.authorId == currentUserId)
-            Positioned(
-              top: 48,
-              right: 16,
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                color: AppColors.surface,
-                onSelected: (value) async {
-                  if (value == 'delete') {
-                    // Show confirmation dialog
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: AppColors.surface,
-                        title: const Text(
-                          'Delete Post?',
-                          style: TextStyle(color: Colors.white),
+          // The Three-Dot Menu
+          Positioned(
+            top: 48,
+            right: 16,
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              color: AppColors.surface,
+              onSelected: (value) async {
+                if (value == 'delete') {
+                  // Show confirmation dialog
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: AppColors.surface,
+                      title: const Text(
+                        'Delete Post?',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      content: const Text(
+                        'This action cannot be undone.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel'),
                         ),
-                        content: const Text(
-                          'This action cannot be undone.',
-                          style: TextStyle(color: Colors.white70),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: AppColors.danger),
+                          ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: AppColors.danger),
-                            ),
-                          ),
-                        ],
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    ref
+                        .read(feedControllerProvider.notifier)
+                        .deletePost(post.id);
+                  }
+                } else if (value == 'report') {
+                  final reason = await _showReportDialog(context);
+                  if (reason != null && context.mounted) {
+                    await ref
+                        .read(feedRepositoryProvider)
+                        .reportPost(currentUserId, post.id, reason);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Post reported. Thank you for keeping Fuse safe.',
+                        ),
                       ),
                     );
-
-                    if (confirm == true) {
-                      ref
-                          .read(feedControllerProvider.notifier)
-                          .deletePost(post.id);
-                    }
                   }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'Delete Post',
-                      style: TextStyle(color: AppColors.danger),
-                    ),
-                  ),
-                ],
-              ),
+                }
+              },
+              itemBuilder: (_) => post.authorId == currentUserId
+                  ? [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text(
+                          'Delete Post',
+                          style: TextStyle(color: AppColors.danger),
+                        ),
+                      ),
+                    ]
+                  : [
+                      const PopupMenuItem(
+                        value: 'report',
+                        child: Text(
+                          'Report Post',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
             ),
+          ),
           // Media content (placeholder)
           Center(
             child: post.mediaUrl != null
@@ -291,12 +315,17 @@ class PostWidget extends ConsumerWidget {
                               .donateTime(post.id, seconds: 30);
                         },
                       ),
-                      PremiumButton(
-                        text: '💬 Comment',
+                      IconButton(
+                        icon: const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                         onPressed: () {
-                          HapticsEngine.lightImpact();
-                          // Show comment bottom sheet
-                          _showCommentSheet(context, ref);
+                          HapticsEngine.selectionClick();
+                          context.push(
+                            '/comments/${post.id}',
+                          ); // Push to the new screen
                         },
                       ),
                     ],
@@ -310,41 +339,35 @@ class PostWidget extends ConsumerWidget {
     );
   }
 
-  void _showCommentSheet(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
-    showModalBottomSheet(
+  Future<String?> _showReportDialog(BuildContext context) {
+    return showDialog<String>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => FuseGlassCard(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'Add a comment...',
-                  labelStyle: TextStyle(color: AppColors.textPrimary),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Report Post', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ['Spam', 'Inappropriate Content', 'Harassment', 'Other']
+              .map(
+                (reason) => ListTile(
+                  title: Text(
+                    reason,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  onTap: () => Navigator.pop(ctx, reason),
                 ),
-                style: const TextStyle(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 16),
-              PremiumButton(
-                text: 'Send',
-                onPressed: () {
-                  if (controller.text.isNotEmpty) {
-                    HapticsEngine.lightImpact();
-                    ref
-                        .read(feedControllerProvider.notifier)
-                        .commentOnPost(post.id, controller.text);
-                    Navigator.pop(ctx);
-                  }
-                },
-              ),
-            ],
-          ),
+              )
+              .toList(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -18,6 +18,9 @@ import '../../features/chat/presentation/chat_room_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/feed/presentation/single_post_screen.dart';
 import '../../features/profile/presentation/immortal_posts_screen.dart';
+import '../../features/feed/presentation/comments_screen.dart';
+import '../../features/profile/presentation/public_profile_screen.dart';
+import '../../features/auth/presentation/onboarding_screen.dart';
 import 'main_scaffold.dart';
 
 CustomTransitionPage buildPageWithDefaultTransition<T>({
@@ -62,8 +65,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
       }
-      if (isLoggedIn && (isLoggingIn || state.matchedLocation == '/')) {
-        return '/feed';
+      if (isLoggedIn) {
+        // If they are on a login screen, push them to feed
+        if (isLoggingIn || state.matchedLocation == '/') {
+          return '/feed';
+        }
       }
       return null;
     },
@@ -146,12 +152,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/preview',
-        pageBuilder: (context, state) {
-          final imagePath = state.extra as String;
-          return buildPageWithDefaultTransition(
-            context: context,
-            state: state,
-            child: PreviewScreen(imagePath: imagePath),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, String>;
+          return PreviewScreen(
+            imagePath: extra['path']!,
+            contentType: extra['type'] ?? 'image',
           );
         },
       ),
@@ -186,13 +191,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
         path: '/profile/:userId',
         pageBuilder: (context, state) {
-          final userId = state.pathParameters['userId']!;
+          final targetUserId = state.pathParameters['userId']!;
           return buildPageWithDefaultTransition(
             context: context,
             state: state,
-            child: ProfileScreen(userId: userId),
+            child: PublicProfileScreen(targetUserId: targetUserId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/comments/:postId',
+        pageBuilder: (context, state) {
+          final postId = state.pathParameters['postId']!;
+          return buildPageWithDefaultTransition(
+            context: context,
+            state: state,
+            child: CommentsScreen(postId: postId),
           );
         },
       ),

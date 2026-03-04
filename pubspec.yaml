@@ -42,7 +42,7 @@ dependencies:
 
   # Camera & image picker
   camera: ^0.11.0
-  image_picker: ^1.1.0
+  image_picker: ^1.2.1
 
   # Haptics – built into Flutter, no extra package needed
   # (we use flutter/services.dart)
@@ -73,9 +73,10 @@ dependencies:
   json_annotation: ^4.9.0
 
   # Multimedia
-  video_player: ^2.9.1
+  video_player: ^2.11.0
   flutter_dotenv: ^6.0.0
   permission_handler: ^12.0.1
+  image_cropper: ^11.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../feed/domain/post_model.dart';
 import '../domain/user_profile.dart';
@@ -33,5 +34,71 @@ class ProfileRepository {
         .from('profiles')
         .update({'username': newUsername})
         .eq('id', userId);
+  }
+
+  Future<void> uploadAvatar(String userId, String filePath) async {
+    final file = File(filePath);
+    final ext = file.path.split('.').last;
+    final fileName = '$userId/avatar.$ext';
+
+    // Upload to storage
+    await _client.storage
+        .from('avatars')
+        .upload(fileName, file, fileOptions: const FileOptions(upsert: true));
+
+    // Get public URL and update profile row
+    final publicUrl = _client.storage.from('avatars').getPublicUrl(fileName);
+    await _client
+        .from('profiles')
+        .update({'avatar_url': publicUrl})
+        .eq('id', userId);
+  }
+
+  Future<bool> checkIsFollowing(
+    String currentUserId,
+    String targetUserId,
+  ) async {
+    final response = await _client
+        .from('follows')
+        .select('id')
+        .eq('follower_id', currentUserId)
+        .eq('following_id', targetUserId)
+        .maybeSingle();
+    return response != null;
+  }
+
+  Future<void> followUser(String currentUserId, String targetUserId) async {
+    await _client.from('follows').insert({
+      'follower_id': currentUserId,
+      'following_id': targetUserId,
+    });
+  }
+
+  Future<void> unfollowUser(String currentUserId, String targetUserId) async {
+    await _client
+        .from('follows')
+        .delete()
+        .eq('follower_id', currentUserId)
+        .eq('following_id', targetUserId);
+  }
+
+  Future<void> blockUser(String blockerId, String blockedId) async {
+    // Insert block record. You can later create a Postgres View to filter out blocked users' posts.
+    await _client.from('blocks').insert({
+      'blocker_id': blockerId,
+      'blocked_id': blockedId,
+    });
+  }
+
+  Future<void> reportUser(
+    String reporterId,
+    String targetUserId,
+    String reason,
+  ) async {
+    await _client.from('reports').insert({
+      'reporter_id': reporterId,
+      'user_id': targetUserId,
+      'reason': reason,
+    });
   }
 }
