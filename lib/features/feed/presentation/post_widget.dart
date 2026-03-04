@@ -316,19 +316,32 @@ class PostWidget extends ConsumerWidget {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(
-                          Icons.ios_share,
-                          color: Colors.white,
+                        icon: Icon(
+                          post.remainingSeconds < 300 &&
+                                  post.remainingSeconds > 0
+                              ? Icons.campaign
+                              : Icons.ios_share,
+                          color:
+                              post.remainingSeconds < 300 &&
+                                  post.remainingSeconds > 0
+                              ? AppColors.timerWarning
+                              : Colors.white,
                           size: 30,
                         ),
                         onPressed: () {
                           HapticsEngine.selectionClick();
-                          // Generate the deep link payload
-                          final String deepLink = 'fuseapp://post/${post.id}';
-                          final String shareText =
-                              'Help save this post before it dies!\n$deepLink';
 
-                          Share.share(shareText);
+                          final isRescue =
+                              post.remainingSeconds < 300 &&
+                              post.remainingSeconds > 0;
+                          final String deepLink = 'fuseapp://post/${post.id}';
+                          final String shareText = isRescue
+                              ? '🚨 RESCUE PARTY! Help save this post before it dies! Donating time gives 2X bonus right now.\n$deepLink'
+                              : 'Check out this post on Fuse!\n$deepLink';
+
+                          SharePlus.instance.share(
+                            ShareParams(text: shareText),
+                          );
                         },
                       ),
                     ],

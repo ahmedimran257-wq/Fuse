@@ -22,6 +22,8 @@ import '../../features/feed/presentation/comments_screen.dart';
 import '../../features/profile/presentation/public_profile_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
+import '../../features/discover/presentation/leaderboard_screen.dart';
+import '../../features/discover/presentation/discover_screen.dart';
 import 'main_scaffold.dart';
 
 CustomTransitionPage buildPageWithDefaultTransition<T>({
@@ -131,6 +133,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/camera',
+                pageBuilder: (context, state) => buildPageWithDefaultTransition(
+                  context: context,
+                  state: state,
+                  child: const CameraScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/discover',
+                pageBuilder: (context, state) => buildPageWithDefaultTransition(
+                  context: context,
+                  state: state,
+                  child: const DiscoverScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/profile',
                 pageBuilder: (context, state) => buildPageWithDefaultTransition(
                   context: context,
@@ -143,14 +169,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      GoRoute(
-        path: '/camera',
-        pageBuilder: (context, state) => buildPageWithDefaultTransition(
-          context: context,
-          state: state,
-          child: const CameraScreen(),
-        ),
-      ),
       GoRoute(
         path: '/preview',
         builder: (context, state) {
@@ -224,6 +242,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           state: state,
           child: const SettingsScreen(),
         ),
+      ),
+      GoRoute(
+        path: '/leaderboard',
+        builder: (context, state) => const LeaderboardScreen(),
       ),
     ],
   );

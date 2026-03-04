@@ -8,6 +8,7 @@ import 'package:fuse/shared/widgets/fuse_glass_card.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 
 import 'package:fuse/shared/widgets/fuse_video_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PreviewScreen extends ConsumerStatefulWidget {
   final String imagePath;
@@ -25,6 +26,77 @@ class PreviewScreen extends ConsumerStatefulWidget {
 class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   final _captionController = TextEditingController();
   int _selectedDuration = 900; // Default 15 minutes
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingDraft();
+
+    // Auto-save listener
+    _captionController.addListener(() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('draft_caption', _captionController.text);
+      await prefs.setString('draft_image_path', widget.imagePath);
+      await prefs.setString('draft_content_type', widget.contentType);
+    });
+  }
+
+  Future<void> _checkExistingDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final draftPath = prefs.getString('draft_image_path');
+    final draftCaption = prefs.getString('draft_caption');
+    final draftType = prefs.getString('draft_content_type') ?? 'image';
+
+    // If a draft exists AND it's not the exact one we are currently looking at
+    if (draftPath != null && draftPath != widget.imagePath && mounted) {
+      final restore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            'Restore Draft?',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'You have an unsaved post. Would you like to restore it?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                prefs.remove('draft_image_path'); // Discard
+                Navigator.pop(ctx, false);
+              },
+              child: const Text(
+                'Discard',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Restore',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (restore == true && mounted) {
+        // Swap the screen data
+        context.replace(
+          '/preview',
+          extra: {'path': draftPath, 'type': draftType},
+        );
+        // We defer caption setting to ensure the new route has built
+        Future.microtask(() => _captionController.text = draftCaption ?? '');
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -168,7 +240,10 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                   PremiumButton(
                     text: 'Post',
                     isLoading: state.isLoading,
-                    onPressed: () {
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove('draft_image_path');
+                      await prefs.remove('draft_caption');
                       ref
                           .read(creationControllerProvider.notifier)
                           .uploadPost(
