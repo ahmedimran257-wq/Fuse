@@ -167,18 +167,26 @@ class PostWidget extends ConsumerWidget {
                     onTap: () => context.push('/profile/${post.authorId}'),
                     child: Row(
                       children: [
-                        const CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppColors.accent,
-                          child: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                        post.author?.avatarUrl != null
+                            ? CircleAvatar(
+                                radius: 16,
+                                backgroundImage: CachedNetworkImageProvider(
+                                  post.author!.avatarUrl!,
+                                ),
+                              )
+                            : const CircleAvatar(
+                                radius: 16,
+                                backgroundColor: AppColors.accent,
+                                child: Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
                         const SizedBox(width: 8),
                         Text(
-                          'User ${post.authorId.substring(0, 6)}',
+                          post.author?.username ??
+                              'User ${post.authorId.substring(0, 6)}',
                           style: const TextStyle(color: AppColors.textPrimary),
                         ),
                         const Spacer(),

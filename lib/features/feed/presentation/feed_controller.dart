@@ -57,7 +57,7 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
     try {
       await _repository.commentOnPost(postId, comment);
     } catch (e) {
-      // Handle error
+      _errorController.add('Failed to post comment. Please try again.');
     }
   }
 

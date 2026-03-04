@@ -15,12 +15,19 @@ class ProfileRepository {
     return UserProfile.fromJson(response);
   }
 
-  Future<List<Post>> getUserPosts(String userId) async {
+  Future<List<Post>> getUserPosts(
+    String userId, {
+    int page = 0,
+    int pageSize = 20,
+  }) async {
+    final from = page * pageSize;
+    final to = from + pageSize - 1;
     final response = await _client
         .from('posts')
         .select()
         .eq('author_id', userId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .range(from, to);
     return (response as List).map((json) => Post.fromJson(json)).toList();
   }
 

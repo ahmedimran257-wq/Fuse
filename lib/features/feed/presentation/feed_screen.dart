@@ -28,16 +28,6 @@ class FeedScreen extends ConsumerWidget {
             letterSpacing: 2,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () => context.push('/profile'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () => context.push('/rooms'),
-          ),
-        ],
       ),
       extendBodyBehindAppBar: true,
       body: postsAsync.when(

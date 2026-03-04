@@ -81,7 +81,7 @@ class FuseTimerBar extends ConsumerWidget {
                   ),
                 ),
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 30),
+                  duration: const Duration(milliseconds: 100),
                   curve: Curves.linear,
                   height: 4,
                   width: constraints.maxWidth * progress,

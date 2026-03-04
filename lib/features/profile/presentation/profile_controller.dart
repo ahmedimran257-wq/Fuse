@@ -38,12 +38,12 @@ class ProfileController extends StateNotifier<AsyncValue<UserProfile>> {
 
   Future<void> useReviveToken(String postId) async {
     await _repository.useReviveToken(postId);
-    refresh();
+    await refresh();
   }
 
   Future<void> updateUsername(String newUsername) async {
     await _repository.updateUsername(newUsername);
-    refresh();
+    await refresh();
   }
 
   Future<void> updateAvatar(String filePath) async {

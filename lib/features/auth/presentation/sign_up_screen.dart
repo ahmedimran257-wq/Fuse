@@ -34,6 +34,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
+    // Listen ONLY for errors — router redirect handles auth-based navigation
     ref.listen(authControllerProvider, (previous, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -42,10 +43,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             backgroundColor: AppColors.danger,
           ),
         );
-      } else if (previous?.status != AuthStatus.authenticated &&
-          next.status == AuthStatus.authenticated) {
-        // Only route to onboarding on a FRESH signup success
-        context.go('/onboarding');
       }
     });
 

@@ -117,11 +117,12 @@ class RoomsListScreen extends ConsumerWidget {
             text: 'Create',
             onPressed: () async {
               if (controller.text.isNotEmpty) {
-                await ref
+                final room = await ref
                     .read(chatControllerProvider.notifier)
                     .createRoom(controller.text);
                 if (!context.mounted) return;
-                Navigator.pop(ctx);
+                Navigator.pop(ctx); // close dialog
+                context.push('/chat/${room.id}'); // enter the new room
               }
             },
           ),

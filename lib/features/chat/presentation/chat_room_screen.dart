@@ -24,10 +24,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(chatMessagesProvider(widget.roomId));
-    final roomAsync = ref.watch(chatControllerProvider).whenData((rooms) {
-      final matches = rooms.where((room) => room.id == widget.roomId);
-      return matches.isNotEmpty ? matches.first : null;
-    });
+    // BUG-13/16 FIX: Use dedicated singleRoomProvider instead of filtering controller list
+    final roomAsync = ref.watch(singleRoomProvider(widget.roomId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -36,12 +34,6 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         elevation: 0,
         title: roomAsync.when(
           data: (room) {
-            if (room == null) {
-              return const Text(
-                'Room Expired',
-                style: TextStyle(color: AppColors.danger),
-              );
-            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -51,7 +43,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                 ),
                 SizedBox(
                   height: 4,
-                  width: 200, // Constrain width for appbar
+                  width: 200,
                   child: FuseTimerBar(
                     expirationTimestamp: room.expirationTimestamp,
                     totalSeconds: room.totalSeconds,
@@ -70,16 +62,19 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         children: [
           Expanded(
             child: messagesAsync.when(
+              // CRIT-02 FIX: No double reversal. reverse:true on ListView handles display order.
+              // Messages from Supabase arrive oldest→newest. reverse:true shows newest at bottom.
               data: (messages) => ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
                 itemCount: messages.length,
-                reverse: true, // Show latest at bottom logic
+                reverse: true,
                 itemBuilder: (context, index) {
-                  final msg = messages.reversed.toList()[index];
+                  final msg =
+                      messages[index]; // No .reversed.toList() — O(1) per item
                   final isMe =
                       msg.senderId ==
-                      Supabase.instance.client.auth.currentUser!.id;
+                      Supabase.instance.client.auth.currentUser?.id;
                   return Align(
                     alignment: isMe
                         ? Alignment.centerRight
@@ -94,11 +89,31 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                         color: isMe ? AppColors.accent : AppColors.surface,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text(
-                        msg.content,
-                        style: TextStyle(
-                          color: isMe ? Colors.black : Colors.white,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: isMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          // BUG-15 FIX: Show sender username for non-self messages
+                          if (!isMe)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                msg.senderUsername,
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          Text(
+                            msg.content,
+                            style: TextStyle(
+                              color: isMe ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );

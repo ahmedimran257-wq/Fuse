@@ -170,11 +170,6 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   return FeedRepository(SupabaseClientWrapper.instance);
 });
 
-final feedStreamProvider = StreamProvider<List<Post>>((ref) {
-  final repository = ref.watch(feedRepositoryProvider);
-  return repository.subscribeToPosts();
-});
-
 final immortalPostsProvider = StreamProvider<List<Post>>((ref) {
   final repository = ref.watch(feedRepositoryProvider);
   return repository.subscribeToImmortalPosts();
