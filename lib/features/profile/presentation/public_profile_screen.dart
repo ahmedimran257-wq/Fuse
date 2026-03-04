@@ -173,7 +173,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 ),
               ),
               loading: () => const CircularProgressIndicator(),
-              error: (_, __) => const SizedBox(),
+              error: (_, _) => const SizedBox(),
             ),
             const SizedBox(height: 32),
             const Divider(color: AppColors.surfaceHighlight),
@@ -209,7 +209,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   },
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) =>
+                error: (_, _) =>
                     const Center(child: Text('Failed to load posts')),
               ),
             ),

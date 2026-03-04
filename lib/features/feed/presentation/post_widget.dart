@@ -79,6 +79,7 @@ class PostWidget extends ConsumerWidget {
                     await ref
                         .read(feedRepositoryProvider)
                         .reportPost(currentUserId, post.id, reason);
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -267,20 +268,6 @@ class PostWidget extends ConsumerWidget {
                         style: const TextStyle(color: AppColors.textPrimary),
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.share,
-                          color: AppColors.textPrimary,
-                        ),
-                        onPressed: () {
-                          HapticsEngine.lightImpact();
-                          final url = 'fuseapp://post/${post.id}';
-                          // ignore: deprecated_member_use
-                          Share.share(
-                            'Save this post before it explodes! $url',
-                          );
-                        },
-                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -326,6 +313,22 @@ class PostWidget extends ConsumerWidget {
                           context.push(
                             '/comments/${post.id}',
                           ); // Push to the new screen
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.ios_share,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                        onPressed: () {
+                          HapticsEngine.selectionClick();
+                          // Generate the deep link payload
+                          final String deepLink = 'fuseapp://post/${post.id}';
+                          final String shareText =
+                              'Help save this post before it dies!\n$deepLink';
+
+                          Share.share(shareText);
                         },
                       ),
                     ],

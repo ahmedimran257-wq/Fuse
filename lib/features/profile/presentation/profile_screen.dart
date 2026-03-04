@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_controller.dart';
-import '../../auth/presentation/auth_controller.dart';
 import '../../../shared/widgets/fuse_glass_card.dart';
 import '../../../shared/widgets/premium_button.dart';
 import '../../../core/theme/app_colors.dart';
@@ -41,10 +40,10 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           if (isOwnProfile)
             IconButton(
-              icon: const Icon(Icons.logout, color: AppColors.danger),
-              onPressed: () async {
+              icon: const Icon(Icons.settings, color: Colors.white),
+              onPressed: () {
                 HapticsEngine.selectionClick();
-                await ref.read(authControllerProvider.notifier).signOut();
+                context.push('/settings');
               },
             ),
         ],

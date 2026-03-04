@@ -21,6 +21,7 @@ import '../../features/profile/presentation/immortal_posts_screen.dart';
 import '../../features/feed/presentation/comments_screen.dart';
 import '../../features/profile/presentation/public_profile_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
+import '../../features/profile/presentation/settings_screen.dart';
 import 'main_scaffold.dart';
 
 CustomTransitionPage buildPageWithDefaultTransition<T>({
@@ -215,6 +216,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             child: CommentsScreen(postId: postId),
           );
         },
+      ),
+      GoRoute(
+        path: '/settings',
+        pageBuilder: (context, state) => buildPageWithDefaultTransition(
+          context: context,
+          state: state,
+          child: const SettingsScreen(),
+        ),
       ),
     ],
   );

@@ -105,6 +105,19 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> deleteAccount() async {
+    state = state.copyWith(status: AuthStatus.loading, clearError: true);
+    try {
+      await _authRepository.deleteAccount();
+      // The _init stream will automatically catch the sign out and push them to the login screen
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Failed to delete account. Please try again.',
+      );
+    }
+  }
+
   String _parseError(Object e) {
     if (e is AuthException) {
       final message = e.message.toLowerCase();

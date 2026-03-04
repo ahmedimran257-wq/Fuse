@@ -47,12 +47,16 @@
 	<true/>
 	<key>CFBundleURLTypes</key>
 	<array>
-	    <dict>
-	        <key>CFBundleURLSchemes</key>
-	        <array>
-	            <string>fuseapp</string>
-	        </array>
-	    </dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.example.fuse</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fuseapp</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>

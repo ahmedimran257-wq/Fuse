@@ -33,4 +33,11 @@ class AuthRepository {
   Stream<AuthState> authStateChanges() {
     return _client.auth.onAuthStateChange;
   }
+
+  Future<void> deleteAccount() async {
+    // 1. Trigger the secure deletion RPC
+    await _client.rpc('delete_user_account');
+    // 2. Sign out locally to clear the device cache
+    await signOut();
+  }
 }
