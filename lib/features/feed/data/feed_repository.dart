@@ -36,6 +36,29 @@ class FeedRepository {
     return (response as List).map((json) => Post.fromJson(json)).toList();
   }
 
+  // Fetch top 10 trending posts (most likes)
+  Future<List<Post>> fetchTrendingPosts() async {
+    final response = await _client
+        .from('posts')
+        .select('*, profiles!author_id(id, username, avatar_url)')
+        .eq('status', 'alive')
+        .order('likes', ascending: false)
+        .limit(10);
+    return (response as List).map((json) => Post.fromJson(json)).toList();
+  }
+
+  // Fetch top 10 dying posts (closest to expiration)
+  Future<List<Post>> fetchDyingPosts() async {
+    final response = await _client
+        .from('posts')
+        .select('*, profiles!author_id(id, username, avatar_url)')
+        .eq('status', 'alive')
+        .gt('expiration_timestamp', DateTime.now().toUtc().toIso8601String())
+        .order('expiration_timestamp', ascending: true)
+        .limit(10);
+    return (response as List).map((json) => Post.fromJson(json)).toList();
+  }
+
   // 2. The Bulletproof Realtime Channel
   Stream<List<Post>> subscribeToPosts() {
     final controller = StreamController<List<Post>>.broadcast();
@@ -197,4 +220,12 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
 final immortalPostsProvider = StreamProvider<List<Post>>((ref) {
   final repository = ref.watch(feedRepositoryProvider);
   return repository.subscribeToImmortalPosts();
+});
+
+final trendingPostsProvider = FutureProvider<List<Post>>((ref) {
+  return ref.watch(feedRepositoryProvider).fetchTrendingPosts();
+});
+
+final dyingPostsProvider = FutureProvider<List<Post>>((ref) {
+  return ref.watch(feedRepositoryProvider).fetchDyingPosts();
 });

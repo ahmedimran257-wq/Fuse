@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 import 'package:fuse/core/utils/haptics_engine.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'feed_controller.dart';
@@ -136,7 +137,9 @@ class FeedScreen extends ConsumerWidget {
                                   ),
                                   image: post.mediaUrl != null
                                       ? DecorationImage(
-                                          image: NetworkImage(post.mediaUrl!),
+                                          image: CachedNetworkImageProvider(
+                                            post.mediaUrl!,
+                                          ),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -188,6 +191,27 @@ class FeedScreen extends ConsumerWidget {
                     },
                     itemBuilder: (context, index) {
                       final post = posts[index];
+
+                      // PREMIUM POLISH: Precache the next 2 images for jitter-free swiping
+                      if (index + 1 < posts.length &&
+                          posts[index + 1].mediaUrl != null) {
+                        precacheImage(
+                          CachedNetworkImageProvider(
+                            posts[index + 1].mediaUrl!,
+                          ),
+                          context,
+                        );
+                      }
+                      if (index + 2 < posts.length &&
+                          posts[index + 2].mediaUrl != null) {
+                        precacheImage(
+                          CachedNetworkImageProvider(
+                            posts[index + 2].mediaUrl!,
+                          ),
+                          context,
+                        );
+                      }
+
                       return PostWidget(post: post);
                     },
                   ),

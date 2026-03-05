@@ -126,11 +126,27 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Not logged in → force to login (unless already there)
       if (!isLoggedIn && !isAuthRoute) {
-        return '/login';
+        // Save the destination they were trying to reach as a query param
+        final encodedUrl = Uri.encodeComponent(state.uri.toString());
+        return '/login?redirect=$encodedUrl';
       }
 
       // Logged in → get out of auth screens
       if (isLoggedIn && isAuthRoute) {
+        // If they were trying to access a deep link, send them there now
+        final redirectUrl = state.uri.queryParameters['redirect'];
+        if (redirectUrl != null && redirectUrl.isNotEmpty) {
+          try {
+            final decoded = Uri.decodeComponent(redirectUrl);
+            if (!decoded.startsWith('/login') &&
+                !decoded.startsWith('/splash') &&
+                !decoded.startsWith('/signup')) {
+              return decoded;
+            }
+          } catch (_) {
+            return '/feed'; // Fallback if decoding fails
+          }
+        }
         return '/feed';
       }
 

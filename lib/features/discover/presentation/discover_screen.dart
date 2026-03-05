@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../profile/domain/user_profile.dart';
 import '../data/discover_repository.dart';
+import '../../feed/data/feed_repository.dart';
+import '../../feed/domain/post_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -152,71 +156,81 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Quick actions
-                    Row(
-                      children: [
-                        _buildQuickAction(
-                          icon: Icons.emoji_events_rounded,
-                          label: 'Leaderboard',
-                          color: AppColors.accentGold,
-                          onTap: () => context.push('/leaderboard'),
+                    // Leaderboard Card
+                    GestureDetector(
+                      onTap: () => context.push('/leaderboard'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
                         ),
-                        const SizedBox(width: 12),
-                        _buildQuickAction(
-                          icon: Icons.local_fire_department_rounded,
-                          label: 'Trending',
-                          color: AppColors.accent,
-                          onTap: () {},
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.accent, AppColors.accentGold],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(width: 12),
-                        _buildQuickAction(
-                          icon: Icons.timer_outlined,
-                          label: 'Dying Now',
-                          color: AppColors.danger,
-                          onTap: () {},
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.emoji_events_rounded,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Global Leaderboard',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'See top time donors',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
-                    // Suggested section
-                    const Text(
-                      'EXPLORE',
-                      style: TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
-                      ),
+                    // Trending Section
+                    _buildSectionHeader(
+                      Icons.local_fire_department_rounded,
+                      'TRENDING',
+                      AppColors.accent,
                     ),
                     const SizedBox(height: 16),
-                    Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.explore_outlined,
-                            size: 56,
-                            color: AppColors.surfaceOverlay,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Search for friends above',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'or check who\'s donating the most time',
-                            style: TextStyle(
-                              color: AppColors.textTertiary,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildTrendingCarousel(ref),
+                    const SizedBox(height: 32),
+
+                    // Dying Now Section
+                    _buildSectionHeader(
+                      Icons.timer_outlined,
+                      'DYING NOW',
+                      AppColors.danger,
                     ),
+                    const SizedBox(height: 16),
+                    _buildDyingCarousel(ref),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -227,37 +241,125 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     );
   }
 
-  Widget _buildQuickAction({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceHighlight,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.surfaceElevated, width: 0.5),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+  Widget _buildSectionHeader(IconData icon, String title, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildTrendingCarousel(WidgetRef ref) {
+    final trendingAsync = ref.watch(trendingPostsProvider);
+    return SizedBox(
+      height: 160,
+      child: trendingAsync.when(
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const Center(
+              child: Text(
+                'No trending posts right now.',
+                style: TextStyle(color: AppColors.textTertiary),
+              ),
+            );
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: posts.length,
+            itemBuilder: (context, index) =>
+                _buildCarouselCard(context, posts[index]),
+          );
+        },
+        loading: () => ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3,
+          itemBuilder: (context, index) => Container(
+            width: 120,
+            margin: const EdgeInsets.only(right: 12),
+            child: const ShimmerLoading(borderRadius: 16),
+          ),
+        ),
+        error: (e, _) => const Center(
+          child: Text(
+            'Failed to load',
+            style: TextStyle(color: AppColors.danger),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDyingCarousel(WidgetRef ref) {
+    final dyingAsync = ref.watch(dyingPostsProvider);
+    return SizedBox(
+      height: 160,
+      child: dyingAsync.when(
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const Center(
+              child: Text(
+                'No dying posts right now.',
+                style: TextStyle(color: AppColors.textTertiary),
+              ),
+            );
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: posts.length,
+            itemBuilder: (context, index) =>
+                _buildCarouselCard(context, posts[index]),
+          );
+        },
+        loading: () => ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3,
+          itemBuilder: (context, index) => Container(
+            width: 120,
+            margin: const EdgeInsets.only(right: 12),
+            child: const ShimmerLoading(borderRadius: 16),
+          ),
+        ),
+        error: (e, _) => const Center(
+          child: Text(
+            'Failed to load',
+            style: TextStyle(color: AppColors.danger),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarouselCard(BuildContext context, Post post) {
+    return GestureDetector(
+      onTap: () => context.push('/post/${post.id}'),
+      child: Container(
+        width: 120,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: AppColors.surfaceHighlight,
+          image: post.mediaUrl != null
+              ? DecorationImage(
+                  image: CachedNetworkImageProvider(post.mediaUrl!),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: post.mediaUrl == null
+            ? const Center(
+                child: Icon(Icons.text_fields, color: AppColors.textTertiary),
+              )
+            : null,
       ),
     );
   }

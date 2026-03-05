@@ -318,6 +318,7 @@ class ProfileScreen extends ConsumerWidget {
                                 ? CachedNetworkImage(
                                     imageUrl: post.mediaUrl!,
                                     fit: BoxFit.cover,
+                                    memCacheWidth: 300,
                                     placeholder: (_, _) =>
                                         const ShimmerLoading(borderRadius: 4),
                                     errorWidget: (_, _, _) => Container(

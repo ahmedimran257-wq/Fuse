@@ -85,6 +85,8 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
                     final comment = comments[index];

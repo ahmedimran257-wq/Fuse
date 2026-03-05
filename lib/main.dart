@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,12 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Premium Error Boundary: Catch unhandled asynchronous errors
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('⚠️ [Global Error Caught]: $error');
+    return true; // Prevent app crash
+  };
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
