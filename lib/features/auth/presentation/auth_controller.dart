@@ -64,7 +64,10 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> signOut() async {
     await _authRepository.signOut();
-    state = AuthState.initial();
+    state = state.copyWith(
+      status: AuthStatus.unauthenticated,
+      clearError: true,
+    );
   }
 
   void checkAuthState() {

@@ -111,25 +111,30 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authControllerProvider);
+      final location = state.matchedLocation;
 
-      if (authState.status == AuthStatus.initial ||
-          authState.status == AuthStatus.loading) {
-        return '/splash';
+      // During cold boot, show splash until checkAuthState resolves
+      if (authState.status == AuthStatus.initial) {
+        return location == '/splash' ? null : '/splash';
       }
 
       final isLoggedIn = authState.status == AuthStatus.authenticated;
-      final isLoggingIn =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/signup';
+      final isAuthRoute =
+          location == '/login' ||
+          location == '/signup' ||
+          location == '/splash';
 
-      if (!isLoggedIn && !isLoggingIn) {
+      // Not logged in → force to login (unless already there)
+      if (!isLoggedIn && !isAuthRoute) {
         return '/login';
       }
-      if (isLoggedIn) {
-        if (isLoggingIn || state.matchedLocation == '/') {
-          return '/feed';
-        }
+
+      // Logged in → get out of auth screens
+      if (isLoggedIn && isAuthRoute) {
+        return '/feed';
       }
+
+      // Loading → don't redirect (let the UI spinner handle it)
       return null;
     },
     routes: [
@@ -216,12 +221,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/preview',
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, String>;
+          final extra = state.extra as Map<String, dynamic>;
           return buildSlideUpTransition(
             state: state,
             child: PreviewScreen(
-              imagePath: extra['path']!,
-              contentType: extra['type'] ?? 'image',
+              imagePath: extra['path'] as String,
+              contentType: (extra['type'] as String?) ?? 'image',
             ),
           );
         },
