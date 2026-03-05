@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_controller.dart';
-import '../../../shared/widgets/fuse_glass_card.dart';
 import '../../../shared/widgets/premium_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/haptics_engine.dart';
-import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -30,26 +29,10 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Fuse Box',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          if (isOwnProfile)
-            IconButton(
-              icon: const Icon(Icons.settings, color: Colors.white),
-              onPressed: () {
-                HapticsEngine.selectionClick();
-                context.push('/settings');
-              },
-            ),
-        ],
-      ),
       body: profileAsync.when(
-        loading: () => const LoadingIndicator(),
+        loading: () => const Center(
+          child: ShimmerLoading(width: 200, height: 200, borderRadius: 100),
+        ),
         error: (error, stack) => ErrorView(
           message: 'Failed to load profile.\n$error',
           onRetry: () => isOwnProfile
@@ -57,34 +40,68 @@ class ProfileScreen extends ConsumerWidget {
               : ref.refresh(userProfileProvider(targetUserId)),
         ),
         data: (profile) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Profile header
-                FuseGlassCard(
-                  child: Column(
-                    children: [
-                      if (isOwnProfile)
-                        GestureDetector(
-                          onTap: () async {
-                            HapticsEngine.selectionClick();
-                            final picker = ImagePicker();
-                            final file = await picker.pickImage(
-                              source: ImageSource.gallery,
-                              imageQuality: 70,
-                            );
-                            if (file != null) {
-                              ref
-                                  .read(profileControllerProvider.notifier)
-                                  .updateAvatar(file.path);
-                            }
-                          },
-                          child: Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              CircleAvatar(
-                                radius: 40,
+          return CustomScrollView(
+            slivers: [
+              // Parallax collapsing header
+              SliverAppBar(
+                expandedHeight: 280,
+                pinned: true,
+                backgroundColor: AppColors.surface,
+                actions: [
+                  if (isOwnProfile)
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () {
+                        HapticsEngine.selectionClick();
+                        context.push('/settings');
+                      },
+                    ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.surfaceGradient,
+                    ),
+                    child: SafeArea(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 40),
+                          // Avatar with gradient ring
+                          GestureDetector(
+                            onTap: isOwnProfile
+                                ? () async {
+                                    HapticsEngine.selectionClick();
+                                    final picker = ImagePicker();
+                                    final file = await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                      imageQuality: 70,
+                                    );
+                                    if (file != null) {
+                                      ref
+                                          .read(
+                                            profileControllerProvider.notifier,
+                                          )
+                                          .updateAvatar(file.path);
+                                    }
+                                  }
+                                : null,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: isOwnProfile
+                                    ? AppColors.brandGradient
+                                    : null,
+                                border: !isOwnProfile
+                                    ? Border.all(
+                                        color: AppColors.surfaceHighlight,
+                                        width: 2,
+                                      )
+                                    : null,
+                              ),
+                              child: CircleAvatar(
+                                radius: 48,
                                 backgroundColor: AppColors.surfaceHighlight,
                                 backgroundImage: profile.avatarUrl != null
                                     ? NetworkImage(profile.avatarUrl!)
@@ -92,162 +109,202 @@ class ProfileScreen extends ConsumerWidget {
                                 child: profile.avatarUrl == null
                                     ? const Icon(
                                         Icons.person,
-                                        size: 40,
-                                        color: Colors.white54,
+                                        size: 48,
+                                        color: AppColors.textSecondary,
                                       )
                                     : null,
                               ),
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  size: 14,
-                                  color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                profile.username,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              if (isOwnProfile)
+                                GestureDetector(
+                                  onTap: () => _showEditUsernameDialog(
+                                    context,
+                                    ref,
+                                    profile.username,
+                                  ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 6),
+                                    child: Icon(
+                                      Icons.edit_outlined,
+                                      color: AppColors.textTertiary,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
-                        )
-                      else
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: AppColors.surfaceHighlight,
-                          backgroundImage: profile.avatarUrl != null
-                              ? NetworkImage(profile.avatarUrl!)
-                              : null,
-                          child: profile.avatarUrl == null
-                              ? const Icon(
-                                  Icons.person,
-                                  size: 40,
-                                  color: Colors.white54,
-                                )
-                              : null,
+                          const SizedBox(height: 20),
+                          // Stats row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildStat(
+                                  'This Week',
+                                  TimeFormatter.formatDuration(
+                                    Duration(seconds: profile.timeDonatedWeek),
+                                  ),
+                                ),
+                                _buildDivider(),
+                                _buildStat(
+                                  'Total',
+                                  TimeFormatter.formatDuration(
+                                    Duration(seconds: profile.timeDonatedTotal),
+                                  ),
+                                ),
+                                _buildDivider(),
+                                _buildStat(
+                                  'Streak',
+                                  '🔥 ${profile.donationStreak}',
+                                ),
+                                _buildDivider(),
+                                _buildStat('Energy', '⚡ ${profile.fuseEnergy}'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Action buttons
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticsEngine.lightImpact();
+                            context.push('/immortal_posts');
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceHighlight,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.surfaceElevated,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.emoji_events_outlined,
+                                  color: AppColors.accentGold,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Hall of Fame',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            profile.username,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (isOwnProfile)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: AppColors.textSecondary,
-                                size: 18,
-                              ),
-                              onPressed: () => _showEditUsernameDialog(
-                                context,
-                                ref,
-                                profile.username,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Stats
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStat(
-                            'Donated (Week)',
-                            TimeFormatter.formatDuration(
-                              Duration(seconds: profile.timeDonatedWeek),
-                            ),
-                          ),
-                          _buildStat(
-                            'Total Donated',
-                            TimeFormatter.formatDuration(
-                              Duration(seconds: profile.timeDonatedTotal),
-                            ),
-                          ),
-                          _buildStat(
-                            'Streak',
-                            '🔥 ${profile.donationStreak}',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStat(
-                            'Fuse Energy',
-                            '⚡ ${profile.fuseEnergy}',
-                          ),
-                          _buildStat(
-                            'Posts',
-                            '${profile.postCount}',
-                          ),
-                          _buildStat(
-                            'Revive Tokens',
-                            '${profile.reviveTokens}',
-                          ),
-                        ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                PremiumButton(
-                  text: '🏆 View Hall of Fame',
-                  onPressed: () {
-                    HapticsEngine.lightImpact();
-                    context.push('/immortal_posts');
-                  },
+              ),
+
+              // Posts section header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Text(
+                    isOwnProfile ? 'YOUR POSTS' : 'POSTS',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                // User's posts
-                const Text(
-                  'Your Posts',
-                  style: TextStyle(fontSize: 20, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 16),
-                postsAsync.when(
-                  data: (posts) {
-                    if (posts.isEmpty) {
-                      return const Text(
-                        'No posts yet.',
-                        style: TextStyle(color: AppColors.textPrimary),
-                      );
-                    }
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+              ),
+
+              // Posts grid
+              postsAsync.when(
+                data: (posts) {
+                  if (posts.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.photo_camera_outlined,
+                              size: 48,
+                              color: AppColors.textTertiary,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'No posts yet',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
                           ),
-                      itemCount: posts.length,
-                      itemBuilder: (context, index) {
+                      delegate: SliverChildBuilderDelegate((context, index) {
                         final post = posts[index];
                         return GestureDetector(
                           onTap: () => context.push('/post/${post.id}'),
-                          child: Card(
-                            color: AppColors.surface,
-                            clipBehavior: Clip.antiAlias,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
                             child: post.mediaUrl != null
                                 ? CachedNetworkImage(
                                     imageUrl: post.mediaUrl!,
                                     fit: BoxFit.cover,
-                                    placeholder: (_, _) => Container(
+                                    placeholder: (_, _) =>
+                                        const ShimmerLoading(borderRadius: 4),
+                                    errorWidget: (_, _, _) => Container(
                                       color: AppColors.surfaceHighlight,
-                                    ),
-                                    errorWidget: (_, _, _) => const Icon(
-                                      Icons.broken_image,
-                                      color: AppColors.danger,
+                                      child: const Icon(
+                                        Icons.broken_image_outlined,
+                                        color: AppColors.textTertiary,
+                                      ),
                                     ),
                                   )
                                 : Container(
@@ -255,21 +312,39 @@ class ProfileScreen extends ConsumerWidget {
                                     child: const Center(
                                       child: Icon(
                                         Icons.text_fields,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textTertiary,
                                       ),
                                     ),
                                   ),
                           ),
                         );
-                      },
-                    );
-                  },
-                  loading: () => const LoadingIndicator(),
-                  error: (e, _) =>
-                      ErrorView(message: 'Failed to load posts.\n$e'),
+                      }, childCount: posts.length),
+                    ),
+                  );
+                },
+                loading: () => SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => const ShimmerLoading(borderRadius: 4),
+                      childCount: 9,
+                    ),
+                  ),
                 ),
-              ],
-            ),
+                error: (e, _) => SliverToBoxAdapter(
+                  child: ErrorView(message: 'Failed to load posts.\n$e'),
+                ),
+              ),
+
+              // Bottom padding
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
           );
         },
       ),
@@ -327,20 +402,29 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildDivider() {
+    return Container(height: 28, width: 0.5, color: AppColors.surfaceOverlay);
+  }
+
   Widget _buildStat(String label, String value) {
     return Column(
       children: [
         Text(
           value,
           style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.accent,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
         ),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 10),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
           textAlign: TextAlign.center,
         ),
       ],

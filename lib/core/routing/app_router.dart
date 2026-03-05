@@ -6,7 +6,6 @@ import '../../core/theme/app_animations.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/domain/auth_state.dart';
 
-// 1. We bring back your sleek Email/Password screens
 import '../../features/auth/presentation/sign_in_screen.dart';
 import '../../features/auth/presentation/sign_up_screen.dart';
 
@@ -26,8 +25,10 @@ import '../../features/discover/presentation/leaderboard_screen.dart';
 import '../../features/discover/presentation/discover_screen.dart';
 import 'main_scaffold.dart';
 
-CustomTransitionPage buildPageWithDefaultTransition<T>({
-  required BuildContext context,
+// ── Transition builders ──
+
+/// Crossfade for tab switches
+CustomTransitionPage buildFadeTransition<T>({
   required GoRouterState state,
   required Widget child,
 }) {
@@ -47,14 +48,70 @@ CustomTransitionPage buildPageWithDefaultTransition<T>({
   );
 }
 
+/// Slide from right for detail/push screens
+CustomTransitionPage buildSlideTransition<T>({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<T>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: AppAnimations.medium,
+    reverseTransitionDuration: AppAnimations.medium,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final offsetAnimation = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+  );
+}
+
+/// Slide up for creation flow (camera, preview)
+CustomTransitionPage buildSlideUpTransition<T>({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<T>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: AppAnimations.medium,
+    reverseTransitionDuration: AppAnimations.medium,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final offsetAnimation = Tween<Offset>(
+        begin: const Offset(0.0, 1.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      final fadeAnimation = Tween<double>(
+        begin: 0.5,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeIn));
+      return SlideTransition(
+        position: offsetAnimation,
+        child: FadeTransition(opacity: fadeAnimation, child: child),
+      );
+    },
+  );
+}
+
+// ── Router Notifier for auth refresh ──
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(this._ref) {
+    _ref.listen(authControllerProvider, (_, _) => notifyListeners());
+  }
+  final Ref _ref;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
+  final notifier = _RouterNotifier(ref);
 
   return GoRouter(
-    initialLocation:
-        '/login', // 2. Set the starting point to your SignIn screen
+    initialLocation: '/login',
+    refreshListenable: notifier,
     redirect: (context, state) {
-      // 1. Guard for the initial loading state
+      final authState = ref.read(authControllerProvider);
+
       if (authState.status == AuthStatus.initial ||
           authState.status == AuthStatus.loading) {
         return '/splash';
@@ -69,7 +126,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
       if (isLoggedIn) {
-        // If they are on a login screen, push them to feed
         if (isLoggingIn || state.matchedLocation == '/') {
           return '/feed';
         }
@@ -77,27 +133,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Add the splash route here
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      // 3. Register your actual Auth routes
       GoRoute(
         path: '/login',
-        pageBuilder: (context, state) => buildPageWithDefaultTransition(
-          context: context,
-          state: state,
-          child: const SignInScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            buildFadeTransition(state: state, child: const SignInScreen()),
       ),
       GoRoute(
         path: '/signup',
-        pageBuilder: (context, state) => buildPageWithDefaultTransition(
-          context: context,
-          state: state,
-          child: const SignUpScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            buildSlideTransition(state: state, child: const SignUpScreen()),
       ),
 
       // Core App Routes with Bottom Navigation
@@ -110,8 +158,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/feed',
-                pageBuilder: (context, state) => buildPageWithDefaultTransition(
-                  context: context,
+                pageBuilder: (context, state) => buildFadeTransition(
                   state: state,
                   child: const FeedScreen(),
                 ),
@@ -122,8 +169,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/rooms',
-                pageBuilder: (context, state) => buildPageWithDefaultTransition(
-                  context: context,
+                pageBuilder: (context, state) => buildFadeTransition(
                   state: state,
                   child: const RoomsListScreen(),
                 ),
@@ -134,8 +180,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/camera',
-                pageBuilder: (context, state) => buildPageWithDefaultTransition(
-                  context: context,
+                pageBuilder: (context, state) => buildSlideUpTransition(
                   state: state,
                   child: const CameraScreen(),
                 ),
@@ -146,8 +191,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/discover',
-                pageBuilder: (context, state) => buildPageWithDefaultTransition(
-                  context: context,
+                pageBuilder: (context, state) => buildFadeTransition(
                   state: state,
                   child: const DiscoverScreen(),
                 ),
@@ -158,8 +202,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/profile',
-                pageBuilder: (context, state) => buildPageWithDefaultTransition(
-                  context: context,
+                pageBuilder: (context, state) => buildFadeTransition(
                   state: state,
                   child: const ProfileScreen(),
                 ),
@@ -169,13 +212,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // Detail screens: slide from right
       GoRoute(
         path: '/preview',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra as Map<String, String>;
-          return PreviewScreen(
-            imagePath: extra['path']!,
-            contentType: extra['type'] ?? 'image',
+          return buildSlideUpTransition(
+            state: state,
+            child: PreviewScreen(
+              imagePath: extra['path']!,
+              contentType: extra['type'] ?? 'image',
+            ),
           );
         },
       ),
@@ -183,8 +230,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/post/:postId',
         pageBuilder: (context, state) {
           final id = state.pathParameters['postId']!;
-          return buildPageWithDefaultTransition(
-            context: context,
+          return buildSlideTransition(
             state: state,
             child: SinglePostScreen(postId: id),
           );
@@ -194,8 +240,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/chat/:roomId',
         pageBuilder: (context, state) {
           final roomId = state.pathParameters['roomId']!;
-          return buildPageWithDefaultTransition(
-            context: context,
+          return buildSlideTransition(
             state: state,
             child: ChatRoomScreen(roomId: roomId),
           );
@@ -203,8 +248,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/immortal_posts',
-        pageBuilder: (context, state) => buildPageWithDefaultTransition(
-          context: context,
+        pageBuilder: (context, state) => buildSlideTransition(
           state: state,
           child: const ImmortalPostsScreen(),
         ),
@@ -217,8 +261,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile/:userId',
         pageBuilder: (context, state) {
           final targetUserId = state.pathParameters['userId']!;
-          return buildPageWithDefaultTransition(
-            context: context,
+          return buildSlideTransition(
             state: state,
             child: PublicProfileScreen(targetUserId: targetUserId),
           );
@@ -228,8 +271,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/comments/:postId',
         pageBuilder: (context, state) {
           final postId = state.pathParameters['postId']!;
-          return buildPageWithDefaultTransition(
-            context: context,
+          return buildSlideUpTransition(
             state: state,
             child: CommentsScreen(postId: postId),
           );
@@ -237,15 +279,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings',
-        pageBuilder: (context, state) => buildPageWithDefaultTransition(
-          context: context,
-          state: state,
-          child: const SettingsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            buildSlideTransition(state: state, child: const SettingsScreen()),
       ),
       GoRoute(
         path: '/leaderboard',
-        builder: (context, state) => const LeaderboardScreen(),
+        pageBuilder: (context, state) => buildSlideTransition(
+          state: state,
+          child: const LeaderboardScreen(),
+        ),
       ),
     ],
   );

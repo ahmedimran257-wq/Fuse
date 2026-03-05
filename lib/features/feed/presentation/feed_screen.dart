@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 import 'package:fuse/core/utils/haptics_engine.dart';
-import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'feed_controller.dart';
 import 'post_widget.dart';
@@ -31,17 +31,40 @@ class FeedScreen extends ConsumerWidget {
       ),
       extendBodyBehindAppBar: true,
       body: postsAsync.when(
-        loading: () => const LoadingIndicator(),
+        loading: () => const PostShimmer(),
         error: (error, stack) => ErrorView(
           message: 'Failed to load posts.\n$error',
           onRetry: () => ref.refresh(feedControllerProvider),
         ),
         data: (posts) {
           if (posts.isEmpty) {
-            return const Center(
-              child: Text(
-                'No posts yet. Create one!',
-                style: TextStyle(color: AppColors.textPrimary),
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.photo_camera_outlined,
+                    size: 64,
+                    color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'The feed is empty',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Be the first to post something!',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -146,18 +169,28 @@ class FeedScreen extends ConsumerWidget {
 
               // THE MAIN VERTICAL FEED
               Expanded(
-                child: PageView.builder(
-                  scrollDirection: Axis.vertical,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: posts.length,
-                  onPageChanged: (index) {
-                    final post = posts[index];
-                    ref.read(feedControllerProvider.notifier).viewPost(post.id);
+                child: RefreshIndicator(
+                  color: AppColors.accent,
+                  backgroundColor: AppColors.surface,
+                  onRefresh: () async {
+                    HapticsEngine.lightImpact();
+                    ref.invalidate(feedControllerProvider);
                   },
-                  itemBuilder: (context, index) {
-                    final post = posts[index];
-                    return PostWidget(post: post);
-                  },
+                  child: PageView.builder(
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: posts.length,
+                    onPageChanged: (index) {
+                      final post = posts[index];
+                      ref
+                          .read(feedControllerProvider.notifier)
+                          .viewPost(post.id);
+                    },
+                    itemBuilder: (context, index) {
+                      final post = posts[index];
+                      return PostWidget(post: post);
+                    },
+                  ),
                 ),
               ),
             ],

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'chat_controller.dart';
 import '../../../shared/widgets/fuse_timer_bar.dart';
-import '../../../shared/widgets/premium_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/haptics_engine.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_view.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fuse/core/providers/auth_user_provider.dart';
 
 class ChatRoomScreen extends ConsumerStatefulWidget {
   final String roomId;
@@ -24,13 +23,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(chatMessagesProvider(widget.roomId));
-    // BUG-13/16 FIX: Use dedicated singleRoomProvider instead of filtering controller list
     final roomAsync = ref.watch(singleRoomProvider(widget.roomId));
+    final currentUserId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         title: roomAsync.when(
           data: (room) {
@@ -39,7 +38,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               children: [
                 Text(
                   room.roomName,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 SizedBox(
                   height: 4,
@@ -52,8 +55,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               ],
             );
           },
-          loading: () =>
-              const Text('Loading...', style: TextStyle(color: Colors.white54)),
+          loading: () => const Text(
+            'Loading...',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
           error: (e, _) =>
               const Text('Error', style: TextStyle(color: AppColors.danger)),
         ),
@@ -62,61 +67,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         children: [
           Expanded(
             child: messagesAsync.when(
-              // CRIT-02 FIX: No double reversal. reverse:true on ListView handles display order.
-              // Messages from Supabase arrive oldest→newest. reverse:true shows newest at bottom.
               data: (messages) => ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 itemCount: messages.length,
                 reverse: true,
                 itemBuilder: (context, index) {
-                  final msg =
-                      messages[index]; // No .reversed.toList() — O(1) per item
-                  final isMe =
-                      msg.senderId ==
-                      Supabase.instance.client.auth.currentUser?.id;
-                  return Align(
-                    alignment: isMe
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isMe ? AppColors.accent : AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: isMe
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        children: [
-                          // BUG-15 FIX: Show sender username for non-self messages
-                          if (!isMe)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                msg.senderUsername,
-                                style: TextStyle(
-                                  color: AppColors.accent,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          Text(
-                            msg.content,
-                            style: TextStyle(
-                              color: isMe ? Colors.black : Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  final msg = messages[index];
+                  final isMe = msg.senderId == currentUserId;
+                  return _buildMessageBubble(msg, isMe);
                 },
               ),
               loading: () => const LoadingIndicator(),
@@ -126,45 +88,64 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          // Redesigned input bar
+          Container(
+            padding: EdgeInsets.only(
+              left: 12,
+              right: 8,
+              top: 8,
+              bottom: MediaQuery.of(context).padding.bottom + 8,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(
+                top: BorderSide(color: AppColors.surfaceHighlight, width: 0.5),
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      hintStyle: TextStyle(color: Colors.white54),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                    ),
+                    maxLines: 4,
+                    minLines: 1,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: 'Message...',
+                      hintStyle: const TextStyle(color: AppColors.textTertiary),
                       filled: true,
-                      fillColor: AppColors.surface,
-                      border: OutlineInputBorder(),
+                      fillColor: AppColors.surfaceHighlight,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                PremiumButton(
-                  text: 'Send',
-                  onPressed: () async {
-                    if (_messageController.text.isNotEmpty) {
-                      HapticsEngine.lightImpact();
-                      final messageContent = _messageController.text;
-                      _messageController.clear();
-
-                      await ref
-                          .read(chatControllerProvider.notifier)
-                          .sendMessage(widget.roomId, messageContent);
-
-                      if (_scrollController.hasClients) {
-                        _scrollController.animateTo(
-                          0,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        );
-                      }
-                    }
-                  },
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_upward_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -172,6 +153,103 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMessageBubble(dynamic msg, bool isMe) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMe) const SizedBox(width: 4),
+          Flexible(
+            child: Container(
+              margin: EdgeInsets.only(
+                left: isMe ? 60 : 0,
+                right: isMe ? 0 : 60,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isMe ? AppColors.accent : AppColors.surfaceHighlight,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(isMe ? 18 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 18),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  if (!isMe)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        msg.senderUsername,
+                        style: TextStyle(
+                          color: AppColors.accentCyan,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    msg.content,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : AppColors.textPrimary,
+                      fontSize: 15,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatMessageTime(msg.createdAt),
+                    style: TextStyle(
+                      color: isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.textTertiary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isMe) const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  String _formatMessageTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    HapticsEngine.lightImpact();
+    final messageContent = _messageController.text.trim();
+    _messageController.clear();
+
+    await ref
+        .read(chatControllerProvider.notifier)
+        .sendMessage(widget.roomId, messageContent);
+
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override

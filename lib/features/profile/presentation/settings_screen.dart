@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_controller.dart';
 
@@ -60,20 +61,87 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = Supabase.instance.client.auth.currentUser;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        title: const Text('Settings', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
         ),
       ),
       body: ListView(
         children: [
-          const SizedBox(height: 16),
+          // User profile header
+          Container(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHighlight,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.surfaceElevated,
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.textSecondary,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.email ?? 'User',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Member since ${_formatDate(user?.createdAt)}',
+                        style: const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Preferences section
+          _buildSectionHeader('PREFERENCES'),
+          _buildListTile(
+            icon: Icons.notifications_outlined,
+            title: 'Push Notifications',
+            trailing: Switch.adaptive(
+              value: true,
+              activeTrackColor: AppColors.accent,
+              onChanged: (_) {},
+            ),
+          ),
+
+          const SizedBox(height: 24),
           _buildSectionHeader('LEGAL & COMPLIANCE'),
           _buildListTile(
             icon: Icons.privacy_tip_outlined,
@@ -91,23 +159,61 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _launchURL('https://fuse.app/guidelines'),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           _buildSectionHeader('ACCOUNT'),
           _buildListTile(
-            icon: Icons.logout,
+            icon: Icons.logout_rounded,
             title: 'Log Out',
             color: AppColors.timerWarning,
             onTap: () => ref.read(authControllerProvider.notifier).signOut(),
           ),
           _buildListTile(
-            icon: Icons.delete_forever,
+            icon: Icons.delete_forever_outlined,
             title: 'Delete Account',
             color: AppColors.danger,
             onTap: () => _confirmDeleteAccount(context, ref),
           ),
+
+          // App version
+          const SizedBox(height: 40),
+          Center(
+            child: Text(
+              'FUSE v1.0.0',
+              style: TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 12,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'recently';
+    try {
+      final date = DateTime.parse(dateStr);
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return 'recently';
+    }
   }
 
   Widget _buildSectionHeader(String title) {
@@ -116,9 +222,9 @@ class SettingsScreen extends ConsumerWidget {
       child: Text(
         title,
         style: const TextStyle(
-          color: AppColors.textSecondary,
+          color: AppColors.textTertiary,
           fontSize: 12,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           letterSpacing: 1.5,
         ),
       ),
@@ -128,13 +234,20 @@ class SettingsScreen extends ConsumerWidget {
   Widget _buildListTile({
     required IconData icon,
     required String title,
-    required VoidCallback onTap,
-    Color color = Colors.white,
+    VoidCallback? onTap,
+    Color color = const Color(0xFFF5F5F7),
+    Widget? trailing,
   }) {
     return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: color, fontSize: 16)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+      leading: Icon(icon, color: color, size: 22),
+      title: Text(title, style: TextStyle(color: color, fontSize: 15)),
+      trailing:
+          trailing ??
+          const Icon(
+            Icons.chevron_right,
+            color: AppColors.textTertiary,
+            size: 20,
+          ),
       onTap: onTap,
     );
   }
