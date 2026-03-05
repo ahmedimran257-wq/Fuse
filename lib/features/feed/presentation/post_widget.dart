@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuse/shared/widgets/fuse_timer_bar.dart';
 import 'package:fuse/shared/widgets/fuse_glass_card.dart';
 import 'package:fuse/shared/widgets/shimmer_loading.dart';
+import 'package:fuse/shared/widgets/fuse_video_player.dart';
 import 'package:fuse/core/theme/app_colors.dart';
 import 'package:fuse/core/utils/haptics_engine.dart';
 import 'package:fuse/core/utils/time_formatter.dart';
@@ -149,10 +150,48 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       ),
                     );
                   }
+                } else if (value == 'revive') {
+                  try {
+                    await ref
+                        .read(feedRepositoryProvider)
+                        .useReviveToken(post.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Revive token applied!')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to apply token: $e'),
+                          backgroundColor: AppColors.danger,
+                        ),
+                      );
+                    }
+                  }
                 }
               },
               itemBuilder: (_) => post.authorId == currentUserId
                   ? [
+                      if (post.status == 'alive')
+                        const PopupMenuItem(
+                          value: 'revive',
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Use Revive Token',
+                                style: TextStyle(color: AppColors.accentGold),
+                              ),
+                              Icon(
+                                Icons.stars,
+                                color: AppColors.accentGold,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Text(
@@ -178,24 +217,26 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             onDoubleTap: _onDoubleTap,
             child: Center(
               child: post.mediaUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: post.mediaUrl!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      placeholder: (context, url) =>
-                          const ShimmerLoading(borderRadius: 0),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.surface,
-                        child: const Center(
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.textTertiary,
-                            size: 48,
-                          ),
-                        ),
-                      ),
-                    )
+                  ? (post.contentType == 'video'
+                        ? FuseVideoPlayer(url: post.mediaUrl!)
+                        : CachedNetworkImage(
+                            imageUrl: post.mediaUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            placeholder: (context, url) =>
+                                const ShimmerLoading(borderRadius: 0),
+                            errorWidget: (context, url, error) => Container(
+                              color: AppColors.surface,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textTertiary,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                          ))
                   : Container(
                       color: AppColors.surface,
                       child: const Center(

@@ -157,6 +157,33 @@ flutter:
           weight: 800
         - asset: assets/fonts/Inter/Inter-Black.ttf
           weight: 900
+        - asset: assets/fonts/Inter/Inter-ThinItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/Inter/Inter-ExtraLightItalic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/Inter/Inter-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/Inter/Inter-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Inter/Inter-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Inter/Inter-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/Inter/Inter-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/Inter/Inter-ExtraBoldItalic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/Inter/Inter-BlackItalic.ttf
+          weight: 900
+          style: italic
     - family: JetBrainsMono
       fonts:
         - asset: assets/fonts/JetBrainsMono/JetBrainsMono-Regular.ttf

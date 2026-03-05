@@ -24,7 +24,7 @@ class ProfileRepository {
     final to = from + pageSize - 1;
     final response = await _client
         .from('posts')
-        .select()
+        .select('*, profiles!author_id(id, username, avatar_url)')
         .eq('author_id', userId)
         .order('created_at', ascending: false)
         .range(from, to);
@@ -47,6 +47,21 @@ class ProfileRepository {
     final file = File(filePath);
     final ext = file.path.split('.').last;
     final fileName = '$userId/avatar.$ext';
+
+    // Delete existing avatars in this user's folder to prevent storage bloat
+    try {
+      final existingFiles = await _client.storage
+          .from('avatars')
+          .list(path: userId);
+      if (existingFiles.isNotEmpty) {
+        final pathsToDelete = existingFiles
+            .map((f) => '$userId/${f.name}')
+            .toList();
+        await _client.storage.from('avatars').remove(pathsToDelete);
+      }
+    } catch (_) {
+      // Ignore if folder doesn't exist yet
+    }
 
     // Upload to storage
     await _client.storage

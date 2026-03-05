@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_animations.dart';
@@ -109,7 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     refreshListenable: notifier,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final authState = ref.read(authControllerProvider);
       final location = state.matchedLocation;
 
@@ -133,6 +135,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Logged in → get out of auth screens
       if (isLoggedIn && isAuthRoute) {
+        // Enforce onboarding check
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          final prefs = await SharedPreferences.getInstance();
+          final onboarded =
+              prefs.getBool('onboarding_complete_${user.id}') ?? false;
+          if (!onboarded) return '/onboarding';
+        }
+
         // If they were trying to access a deep link, send them there now
         final redirectUrl = state.uri.queryParameters['redirect'];
         if (redirectUrl != null && redirectUrl.isNotEmpty) {

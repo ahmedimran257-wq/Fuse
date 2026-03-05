@@ -125,7 +125,9 @@ class ProfileScreen extends ConsumerWidget {
                                 radius: 48,
                                 backgroundColor: AppColors.surfaceHighlight,
                                 backgroundImage: profile.avatarUrl != null
-                                    ? NetworkImage(profile.avatarUrl!)
+                                    ? CachedNetworkImageProvider(
+                                        profile.avatarUrl!,
+                                      )
                                     : null,
                                 child: profile.avatarUrl == null
                                     ? const Icon(

@@ -60,17 +60,29 @@ class FeedRepository {
   }
 
   // 2. The Bulletproof Realtime Channel
-  Stream<List<Post>> subscribeToPosts() {
+  Stream<List<Post>> subscribeToPosts({int limit = 10}) {
     final controller = StreamController<List<Post>>.broadcast();
 
+    Future<void> fetchPosts() async {
+      try {
+        final response = await _client
+            .from('posts')
+            .select('*, profiles!author_id(id, username, avatar_url)')
+            .eq('status', 'alive')
+            .order('created_at', ascending: false)
+            .limit(limit);
+        if (!controller.isClosed) {
+          controller.add(
+            (response as List).map((j) => Post.fromJson(j)).toList(),
+          );
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
     // Fire the initial load instantly
-    fetchAlivePosts()
-        .then((posts) {
-          if (!controller.isClosed) controller.add(posts);
-        })
-        .catchError((e) {
-          if (!controller.isClosed) controller.addError(e);
-        });
+    fetchPosts();
 
     // Listen to changes quietly in the background
     final channel = _client
@@ -82,8 +94,7 @@ class FeedRepository {
           callback: (payload) async {
             // Whenever ANY post is liked, killed, or created, quietly fetch the fresh joined data
             if (!controller.isClosed) {
-              final posts = await fetchAlivePosts();
-              controller.add(posts);
+              await fetchPosts();
             }
           },
         )
@@ -98,26 +109,92 @@ class FeedRepository {
     return controller.stream;
   }
 
-  // Real-time subscription for immortal posts
+  // Real-time subscription for immortal posts (with profile JOIN support)
   Stream<List<Post>> subscribeToImmortalPosts() {
-    return _client
-        .from('posts')
-        .stream(primaryKey: ['id'])
-        .eq('status', 'immortal')
-        .order('created_at', ascending: false)
-        .map((events) => events.map((json) => Post.fromJson(json)).toList());
+    final controller = StreamController<List<Post>>.broadcast();
+
+    Future<void> fetchImmortal() async {
+      try {
+        final rows = await _client
+            .from('posts')
+            .select('*, profiles!author_id(id, username, avatar_url)')
+            .eq('status', 'immortal')
+            .order('created_at', ascending: false);
+        if (!controller.isClosed) {
+          controller.add((rows as List).map((j) => Post.fromJson(j)).toList());
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    fetchImmortal();
+
+    final channel = _client
+        .channel('public:immortal_posts')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'status',
+            value: 'immortal',
+          ),
+          callback: (_) => fetchImmortal(),
+        )
+        .subscribe();
+
+    controller.onCancel = () {
+      _client.removeChannel(channel);
+      controller.close();
+    };
+
+    return controller.stream;
   }
 
-  // Real-time subscription for a single post
+  // Real-time subscription for a single post (with profile JOIN support)
   Stream<Post> subscribeToSinglePost(String postId) {
-    return _client
-        .from('posts')
-        .stream(primaryKey: ['id'])
-        .eq('id', postId)
-        .map((rows) {
-          if (rows.isEmpty) throw Exception('Post not found');
-          return Post.fromJson(rows.first);
-        });
+    final controller = StreamController<Post>.broadcast();
+
+    Future<void> fetchSingle() async {
+      try {
+        final row = await _client
+            .from('posts')
+            .select('*, profiles!author_id(id, username, avatar_url)')
+            .eq('id', postId)
+            .single();
+        if (!controller.isClosed) {
+          controller.add(Post.fromJson(row));
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    fetchSingle();
+
+    final channel = _client
+        .channel('public:single_post_$postId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: postId,
+          ),
+          callback: (_) => fetchSingle(),
+        )
+        .subscribe();
+
+    controller.onCancel = () {
+      _client.removeChannel(channel);
+      controller.close();
+    };
+
+    return controller.stream;
   }
 
   // Like a post (call RPC)
@@ -145,6 +222,24 @@ class FeedRepository {
   }
 
   Future<void> deletePost(String postId) async {
+    try {
+      // Fetch post to see if it has media
+      final response = await _client
+          .from('posts')
+          .select('media_url')
+          .eq('id', postId)
+          .single();
+      final mediaUrl = response['media_url'] as String?;
+
+      if (mediaUrl != null && mediaUrl.contains('/posts/')) {
+        // Extract the filename from the public URL
+        final fileName = mediaUrl.split('/posts/').last;
+        await _client.storage.from('posts').remove([fileName]);
+      }
+    } catch (_) {
+      // Ignore if fetch fails or media deletion fails, continue to delete row
+    }
+
     // Delete the row from the database (Supabase RLS ensures they can only delete their own)
     await _client.from('posts').delete().eq('id', postId);
   }
@@ -155,6 +250,10 @@ class FeedRepository {
       'donate_time',
       params: {'p_post_id': postId, 'p_seconds': seconds},
     );
+  }
+
+  Future<void> useReviveToken(String postId) async {
+    await _client.rpc('use_revive_token', params: {'p_post_id': postId});
   }
 
   final Map<String, Map<String, dynamic>> _profileCache = {};

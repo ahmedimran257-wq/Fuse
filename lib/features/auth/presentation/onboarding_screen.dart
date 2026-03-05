@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/premium_button.dart';
 import '../../profile/presentation/profile_controller.dart';
@@ -32,9 +34,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         .updateUsername(_controller.text.trim());
 
     if (mounted) {
-      // Mark onboarding as complete locally (so we don't ask again)
-      // Ideally, you'd use shared_preferences here, but for now we just push them through.
-      context.go('/feed');
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('onboarding_complete_${user.id}', true);
+      }
+      if (mounted) {
+        context.go('/feed');
+      }
     }
   }
 

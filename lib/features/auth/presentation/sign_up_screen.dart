@@ -79,18 +79,47 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   const SizedBox(height: 48),
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                    ),
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
-                      labelStyle: TextStyle(color: Colors.white54),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.surfaceHighlight,
+                      labelStyle: const TextStyle(
+                        color: AppColors.textTertiary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: AppColors.textTertiary,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceHighlight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.accent,
+                          width: 1.5,
                         ),
                       ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.accent),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     validator: (val) => val != null && val.contains('@')
@@ -100,18 +129,47 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                    ),
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: const TextStyle(color: Colors.white54),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.surfaceHighlight,
+                      labelStyle: const TextStyle(
+                        color: AppColors.textTertiary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.textTertiary,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceHighlight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.accent,
+                          width: 1.5,
                         ),
                       ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.accent),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1.5,
+                        ),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -132,18 +190,47 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _confirmPasswordController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                    ),
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
-                      labelStyle: const TextStyle(color: Colors.white54),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.surfaceHighlight,
+                      labelStyle: const TextStyle(
+                        color: AppColors.textTertiary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.textTertiary,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceHighlight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.accent,
+                          width: 1.5,
                         ),
                       ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.accent),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.danger,
+                          width: 1.5,
+                        ),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(

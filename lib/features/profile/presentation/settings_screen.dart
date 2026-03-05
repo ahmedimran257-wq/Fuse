@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_controller.dart';
 
@@ -134,11 +135,7 @@ class SettingsScreen extends ConsumerWidget {
           _buildListTile(
             icon: Icons.notifications_outlined,
             title: 'Push Notifications',
-            trailing: Switch.adaptive(
-              value: true,
-              activeTrackColor: AppColors.accent,
-              onChanged: (_) {},
-            ),
+            trailing: const _NotificationToggle(),
           ),
 
           const SizedBox(height: 24),
@@ -249,6 +246,70 @@ class SettingsScreen extends ConsumerWidget {
             size: 20,
           ),
       onTap: onTap,
+    );
+  }
+}
+
+class _NotificationToggle extends StatefulWidget {
+  const _NotificationToggle();
+
+  @override
+  State<_NotificationToggle> createState() => _NotificationToggleState();
+}
+
+class _NotificationToggleState extends State<_NotificationToggle> {
+  bool _notificationsEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    if (mounted) {
+      setState(() {
+        _notificationsEnabled =
+            settings.authorizationStatus == AuthorizationStatus.authorized;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (value) {
+      final settings = await FirebaseMessaging.instance.requestPermission();
+      if (mounted) {
+        setState(() {
+          _notificationsEnabled =
+              settings.authorizationStatus == AuthorizationStatus.authorized;
+        });
+        if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enable notifications in system settings'),
+            ),
+          );
+        }
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Disable notifications in system settings'),
+        ),
+      );
+      if (mounted) {
+        setState(() => _notificationsEnabled = false); // Optimistic UI
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch.adaptive(
+      value: _notificationsEnabled,
+      activeTrackColor: AppColors.accent,
+      onChanged: _toggle,
     );
   }
 }

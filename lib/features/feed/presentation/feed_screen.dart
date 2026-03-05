@@ -29,6 +29,15 @@ class FeedScreen extends ConsumerWidget {
             letterSpacing: 2,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              HapticsEngine.lightImpact();
+              ref.invalidate(feedControllerProvider);
+            },
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: postsAsync.when(
@@ -82,139 +91,134 @@ class FeedScreen extends ConsumerWidget {
             children: [
               // THE DYING STRIP
               if (dyingPosts.isNotEmpty)
-                Container(
-                  height: 120,
-                  color: AppColors.background,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 16, top: 40),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: AppColors.timerCritical,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'DYING NOW',
-                              style: TextStyle(
+                SafeArea(
+                  bottom: false,
+                  child: Container(
+                    height: 120,
+                    color: AppColors.background,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 16, top: 40),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
                                 color: AppColors.timerCritical,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
+                                size: 16,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 4),
+                              Text(
+                                'DYING NOW',
+                                style: TextStyle(
+                                  color: AppColors.timerCritical,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: dyingPosts.length,
-                          itemBuilder: (context, index) {
-                            final post = dyingPosts[index];
-                            final secondsLeft = post.expirationTimestamp
-                                .difference(DateTime.now().toUtc())
-                                .inSeconds;
+                        Expanded(
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: dyingPosts.length,
+                            itemBuilder: (context, index) {
+                              final post = dyingPosts[index];
+                              final secondsLeft = post.expirationTimestamp
+                                  .difference(DateTime.now().toUtc())
+                                  .inSeconds;
 
-                            return GestureDetector(
-                              onTap: () => context.push('/post/${post.id}'),
-                              child: Container(
-                                width: 64,
-                                margin: const EdgeInsets.only(
-                                  left: 16,
-                                  top: 8,
-                                  bottom: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.timerCritical,
-                                    width: 2,
+                              return GestureDetector(
+                                onTap: () => context.push('/post/${post.id}'),
+                                child: Container(
+                                  width: 64,
+                                  margin: const EdgeInsets.only(
+                                    left: 16,
+                                    top: 8,
+                                    bottom: 8,
                                   ),
-                                  image: post.mediaUrl != null
-                                      ? DecorationImage(
-                                          image: CachedNetworkImageProvider(
-                                            post.mediaUrl!,
-                                          ),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.timerCritical,
+                                      width: 2,
                                     ),
-                                    child: Text(
-                                      '${secondsLeft}s',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                                    image: post.mediaUrl != null
+                                        ? DecorationImage(
+                                            image: CachedNetworkImageProvider(
+                                              post.mediaUrl!,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '${secondsLeft}s',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
               // THE MAIN VERTICAL FEED
               Expanded(
-                child: RefreshIndicator(
-                  color: AppColors.accent,
-                  backgroundColor: AppColors.surface,
-                  onRefresh: () async {
-                    HapticsEngine.lightImpact();
-                    ref.invalidate(feedControllerProvider);
+                child: PageView.builder(
+                  scrollDirection: Axis.vertical,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: posts.length,
+                  onPageChanged: (index) {
+                    final post = posts[index];
+                    final controller = ref.read(
+                      feedControllerProvider.notifier,
+                    );
+                    controller.viewPost(post.id);
+                    if (index >= posts.length - 3) {
+                      controller.loadMorePosts();
+                    }
                   },
-                  child: PageView.builder(
-                    scrollDirection: Axis.vertical,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: posts.length,
-                    onPageChanged: (index) {
-                      final post = posts[index];
-                      ref
-                          .read(feedControllerProvider.notifier)
-                          .viewPost(post.id);
-                    },
-                    itemBuilder: (context, index) {
-                      final post = posts[index];
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
 
-                      // PREMIUM POLISH: Precache the next 2 images for jitter-free swiping
-                      if (index + 1 < posts.length &&
-                          posts[index + 1].mediaUrl != null) {
-                        precacheImage(
-                          CachedNetworkImageProvider(
-                            posts[index + 1].mediaUrl!,
-                          ),
-                          context,
-                        );
-                      }
-                      if (index + 2 < posts.length &&
-                          posts[index + 2].mediaUrl != null) {
-                        precacheImage(
-                          CachedNetworkImageProvider(
-                            posts[index + 2].mediaUrl!,
-                          ),
-                          context,
-                        );
-                      }
+                    // PREMIUM POLISH: Precache the next 2 images for jitter-free swiping
+                    if (index + 1 < posts.length &&
+                        posts[index + 1].mediaUrl != null) {
+                      precacheImage(
+                        CachedNetworkImageProvider(posts[index + 1].mediaUrl!),
+                        context,
+                      );
+                    }
+                    if (index + 2 < posts.length &&
+                        posts[index + 2].mediaUrl != null) {
+                      precacheImage(
+                        CachedNetworkImageProvider(posts[index + 2].mediaUrl!),
+                        context,
+                      );
+                    }
 
-                      return PostWidget(post: post);
-                    },
-                  ),
+                    return PostWidget(post: post);
+                  },
                 ),
               ),
             ],

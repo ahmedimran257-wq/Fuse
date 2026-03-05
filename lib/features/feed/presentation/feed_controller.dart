@@ -5,6 +5,7 @@ import '../domain/post_model.dart';
 
 final feedControllerProvider =
     StateNotifierProvider<FeedController, AsyncValue<List<Post>>>((ref) {
+      ref.keepAlive();
       final repository = ref.watch(feedRepositoryProvider);
       return FeedController(repository);
     });
@@ -12,6 +13,8 @@ final feedControllerProvider =
 class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
   final FeedRepository _repository;
   StreamSubscription<List<Post>>? _subscription;
+  int _currentLimit = 10;
+  bool _isLoadingMore = false;
 
   final _errorController = StreamController<String>.broadcast();
   Stream<String> get errorStream => _errorController.stream;
@@ -26,14 +29,30 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
   }
 
   void _subscribeToPosts() {
-    _subscription = _repository.subscribeToPosts().listen(
-      (posts) {
-        state = AsyncValue.data(posts);
-      },
-      onError: (error, stack) {
-        state = AsyncValue.error(error, stack);
-      },
-    );
+    _subscription?.cancel();
+    _subscription = _repository
+        .subscribeToPosts(limit: _currentLimit)
+        .listen(
+          (posts) {
+            state = AsyncValue.data(posts);
+            _isLoadingMore = false;
+          },
+          onError: (error, stack) {
+            if (state is AsyncLoading) {
+              state = AsyncValue.error(error, stack);
+            }
+            _isLoadingMore = false;
+          },
+        );
+  }
+
+  void loadMorePosts() {
+    if (_isLoadingMore) return;
+    final currentCount = state.value?.length ?? 0;
+    if (currentCount < _currentLimit) return; // End of list reached
+    _isLoadingMore = true;
+    _currentLimit += 10;
+    _subscribeToPosts();
   }
 
   Future<void> likePost(String postId) async {

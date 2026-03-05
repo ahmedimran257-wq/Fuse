@@ -188,7 +188,15 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           CameraPreview(_controller!),
 
-          // Top Controls (Flash)
+          // Top Controls (Flash and Close)
+          Positioned(
+            top: 50,
+            left: 20,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () => context.pop(),
+            ),
+          ),
           Positioned(
             top: 50,
             right: 20,

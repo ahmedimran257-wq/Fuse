@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/providers/auth_user_provider.dart';
+
 import '../data/feed_repository.dart';
 import '../domain/comment_model.dart';
+import 'feed_controller.dart';
 
 // Stream provider to watch comments in real time
 final commentsProvider = StreamProvider.family<List<Comment>, String>((
@@ -35,14 +36,13 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   Future<void> _submitComment() async {
     if (_controller.text.trim().isEmpty) return;
 
-    final userId = ref.read(currentUserIdProvider);
     final text = _controller.text.trim();
     _controller.clear(); // Clear instantly for UX
 
     try {
       await ref
-          .read(feedRepositoryProvider)
-          .addComment(widget.postId, userId, text);
+          .read(feedControllerProvider.notifier)
+          .commentOnPost(widget.postId, text);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/chat_room.dart';
 import '../domain/chat_message.dart';
@@ -12,7 +13,7 @@ class ChatRepository {
         .from('chat_rooms')
         .select('*, chat_members!inner(user_id)')
         .eq('chat_members.user_id', userId)
-        .gt('expiration_timestamp', DateTime.now().toIso8601String())
+        .gt('expiration_timestamp', DateTime.now().toUtc().toIso8601String())
         .order('created_at', ascending: false);
     return (response as List).map((json) => ChatRoom.fromJson(json)).toList();
   }
@@ -23,7 +24,7 @@ class ChatRepository {
     int maxDurationHours = 24,
   }) async {
     final userId = _client.auth.currentUser!.id;
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final expiration = now.add(const Duration(minutes: 30)); // initial fuse
     final maxExpiration = now.add(Duration(hours: maxDurationHours));
     final response = await _client
@@ -63,16 +64,51 @@ class ChatRepository {
     });
   }
 
-  // Subscribe to messages in a room
+  // Subscribe to messages in a room (with profile JOIN support)
   Stream<List<ChatMessage>> subscribeToMessages(String roomId) {
-    return _client
-        .from('chat_messages')
-        .stream(primaryKey: ['id'])
-        .eq('room_id', roomId)
-        .order('created_at')
-        .map(
-          (events) => events.map((json) => ChatMessage.fromJson(json)).toList(),
-        );
+    final controller = StreamController<List<ChatMessage>>.broadcast();
+
+    Future<void> fetchMessages() async {
+      try {
+        final rows = await _client
+            .from('chat_messages')
+            .select('*, profiles!sender_id(id, username, avatar_url)')
+            .eq('room_id', roomId)
+            .order('created_at', ascending: false);
+        if (!controller.isClosed) {
+          controller.add(
+            (rows as List).map((j) => ChatMessage.fromJson(j)).toList(),
+          );
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    // Initial fetch
+    fetchMessages();
+
+    // Listen for changes
+    final channel = _client
+        .channel('room:$roomId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'chat_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'room_id',
+            value: roomId,
+          ),
+          callback: (_) => fetchMessages(),
+        )
+        .subscribe();
+
+    controller.onCancel = () {
+      _client.removeChannel(channel);
+      controller.close();
+    };
+    return controller.stream;
   }
 
   // Get room details

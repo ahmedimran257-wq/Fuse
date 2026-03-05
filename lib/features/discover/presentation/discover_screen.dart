@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,11 +21,20 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final _searchController = TextEditingController();
   List<UserProfile> _searchResults = [];
   bool _isSearching = false;
+  Timer? _debounce;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _performSearch(query);
+    });
   }
 
   Future<void> _performSearch(String query) async {
@@ -38,15 +48,22 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       return;
     }
 
-    setState(() => _isSearching = true);
-    final results = await ref
-        .read(discoverRepositoryProvider)
-        .searchUsers(query);
-    if (mounted) {
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
+    if (mounted) setState(() => _isSearching = true);
+
+    try {
+      final results = await ref
+          .read(discoverRepositoryProvider)
+          .searchUsers(query);
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
     }
   }
 
@@ -90,7 +107,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   color: AppColors.textPrimary,
                   fontSize: 15,
                 ),
-                onChanged: _performSearch,
+                onChanged: _onSearchChanged,
                 decoration: InputDecoration(
                   hintText: 'Search users...',
                   hintStyle: const TextStyle(color: AppColors.textTertiary),

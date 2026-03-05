@@ -29,6 +29,6 @@ class ChatRoom with _$ChatRoom {
   }
 
   int get totalSeconds {
-    return maxExpirationTimestamp.difference(createdAt).inSeconds;
+    return expirationTimestamp.difference(createdAt).inSeconds;
   }
 }

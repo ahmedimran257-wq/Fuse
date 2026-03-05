@@ -13,7 +13,7 @@ class TimeFormatter {
 
   static String formatTimestamp(DateTime timestamp) {
     // e.g., "2m ago" or "just now"
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final difference = now.difference(timestamp);
     if (difference.inSeconds < 60) {
       return 'just now';

@@ -122,7 +122,7 @@ class _TimerContent extends ConsumerWidget {
             );
           },
           child: Text(
-            "$minutes:$seconds:$milliseconds",
+            "$minutes:$seconds.$milliseconds",
             style: AppTypography.timerDisplay.copyWith(
               fontSize: 24,
               color: activeColor,
