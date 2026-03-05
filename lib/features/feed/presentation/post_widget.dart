@@ -415,102 +415,105 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                   ),
                   const SizedBox(height: 12),
                   // Action buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Like button with scale animation
-                      _AnimatedLikeButton(
-                        isLiked: isLiked,
-                        onTap: () {
-                          HapticsEngine.selectionClick();
-                          ref
-                              .read(feedControllerProvider.notifier)
-                              .likePost(post.id);
-                        },
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 56),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Like button with scale animation
+                        _AnimatedLikeButton(
+                          isLiked: isLiked,
+                          onTap: () {
+                            HapticsEngine.selectionClick();
+                            ref
+                                .read(feedControllerProvider.notifier)
+                                .likePost(post.id);
+                          },
+                        ),
 
-                      // Donate Time
-                      GestureDetector(
-                        onTap: () {
-                          HapticsEngine.heavySuccess();
-                          ref
-                              .read(feedControllerProvider.notifier)
-                              .donateTime(post.id, seconds: 30);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: AppColors.accent.withValues(alpha: 0.5),
+                        // Donate Time
+                        GestureDetector(
+                          onTap: () {
+                            HapticsEngine.heavySuccess();
+                            ref
+                                .read(feedControllerProvider.notifier)
+                                .donateTime(post.id, seconds: 30);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.timer_outlined,
-                                color: AppColors.accent,
-                                size: 18,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: AppColors.accent.withValues(alpha: 0.5),
                               ),
-                              SizedBox(width: 4),
-                              Text(
-                                '+30s',
-                                style: TextStyle(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.timer_outlined,
                                   color: AppColors.accent,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 4),
+                                Text(
+                                  '+30s',
+                                  style: TextStyle(
+                                    color: AppColors.accent,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
 
-                      IconButton(
-                        icon: const Icon(
-                          Icons.chat_bubble_outline,
-                          color: Colors.white70,
-                          size: 26,
+                        IconButton(
+                          icon: const Icon(
+                            Icons.chat_bubble_outline,
+                            color: Colors.white70,
+                            size: 26,
+                          ),
+                          onPressed: () {
+                            HapticsEngine.selectionClick();
+                            context.push('/comments/${post.id}');
+                          },
                         ),
-                        onPressed: () {
-                          HapticsEngine.selectionClick();
-                          context.push('/comments/${post.id}');
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          post.remainingSeconds < 300 &&
-                                  post.remainingSeconds > 0
-                              ? Icons.campaign
-                              : Icons.ios_share,
-                          color:
-                              post.remainingSeconds < 300 &&
-                                  post.remainingSeconds > 0
-                              ? AppColors.timerWarning
-                              : Colors.white70,
-                          size: 26,
+                        IconButton(
+                          icon: Icon(
+                            post.remainingSeconds < 300 &&
+                                    post.remainingSeconds > 0
+                                ? Icons.campaign
+                                : Icons.ios_share,
+                            color:
+                                post.remainingSeconds < 300 &&
+                                    post.remainingSeconds > 0
+                                ? AppColors.timerWarning
+                                : Colors.white70,
+                            size: 26,
+                          ),
+                          onPressed: () {
+                            HapticsEngine.selectionClick();
+
+                            final isRescue =
+                                post.remainingSeconds < 300 &&
+                                post.remainingSeconds > 0;
+                            final String deepLink = 'fuseapp://post/${post.id}';
+                            final String shareText = isRescue
+                                ? '🚨 RESCUE PARTY! Help save this post before it dies! Donating time gives 2X bonus right now.\n$deepLink'
+                                : 'Check out this post on Fuse!\n$deepLink';
+
+                            SharePlus.instance.share(
+                              ShareParams(text: shareText),
+                            );
+                          },
                         ),
-                        onPressed: () {
-                          HapticsEngine.selectionClick();
-
-                          final isRescue =
-                              post.remainingSeconds < 300 &&
-                              post.remainingSeconds > 0;
-                          final String deepLink = 'fuseapp://post/${post.id}';
-                          final String shareText = isRescue
-                              ? '🚨 RESCUE PARTY! Help save this post before it dies! Donating time gives 2X bonus right now.\n$deepLink'
-                              : 'Check out this post on Fuse!\n$deepLink';
-
-                          SharePlus.instance.share(
-                            ShareParams(text: shareText),
-                          );
-                        },
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

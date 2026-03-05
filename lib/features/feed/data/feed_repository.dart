@@ -134,18 +134,42 @@ class FeedRepository {
     );
   }
 
+  final Map<String, Map<String, dynamic>> _profileCache = {};
+
   Stream<List<Comment>> subscribeToComments(String postId) {
     return _client
         .from('post_interactions')
         .stream(primaryKey: ['id'])
         .eq('post_id', postId)
-        .order('created_at', ascending: true) // Oldest at top, newest at bottom
-        .map(
-          (rows) => rows
-              .where((j) => j['type'] == 'comment')
-              .map((j) => Comment.fromJson(j))
-              .toList(),
-        );
+        .order('created_at', ascending: true)
+        .asyncMap((rows) async {
+          final comments = rows.where((j) => j['type'] == 'comment').toList();
+
+          // Collect unique user IDs that need profile lookup
+          final userIds = comments
+              .map((j) => j['user_id'] as String)
+              .toSet()
+              .where((id) => !_profileCache.containsKey(id))
+              .toList();
+
+          // Batch fetch missing profiles
+          if (userIds.isNotEmpty) {
+            final profiles = await _client
+                .from('profiles')
+                .select('id, username, avatar_url')
+                .inFilter('id', userIds);
+            for (final p in profiles) {
+              _profileCache[p['id'] as String] = p;
+            }
+          }
+
+          // Build Comment objects with profile data
+          return comments.map((j) {
+            final profile = _profileCache[j['user_id']];
+            j['profiles'] = profile;
+            return Comment.fromJson(j);
+          }).toList();
+        });
   }
 
   Future<void> addComment(String postId, String userId, String text) async {

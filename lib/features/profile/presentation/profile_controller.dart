@@ -41,18 +41,26 @@ class ProfileController extends StateNotifier<AsyncValue<UserProfile>> {
     await refresh();
   }
 
-  Future<void> updateUsername(String newUsername) async {
-    await _repository.updateUsername(newUsername);
-    await refresh();
+  Future<String?> updateUsername(String newUsername) async {
+    try {
+      await _repository.updateUsername(newUsername);
+      await refresh();
+      return null; // null = success
+    } catch (e) {
+      debugPrint('Failed to update username: $e');
+      return e.toString();
+    }
   }
 
-  Future<void> updateAvatar(String filePath) async {
+  Future<String?> updateAvatar(String filePath) async {
     try {
       final userId = ref.read(currentUserIdProvider);
       await _repository.uploadAvatar(userId, filePath);
-      await refresh(); // Reload the UI to show the new picture!
+      await refresh();
+      return null; // null = success
     } catch (e) {
       debugPrint('Failed to upload avatar: $e');
+      return e.toString();
     }
   }
 }

@@ -80,12 +80,18 @@ class AuthController extends StateNotifier<AuthState> {
         email: user.email,
       );
     } else {
-      state = AuthState.initial();
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        clearError: true,
+      );
     }
   }
 
   void resetError() {
-    state = state.copyWith(status: AuthStatus.initial, clearError: true);
+    state = state.copyWith(
+      status: AuthStatus.unauthenticated,
+      clearError: true,
+    );
   }
 
   @override

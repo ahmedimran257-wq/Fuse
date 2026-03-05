@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/auth_user_provider.dart';
 import '../data/feed_repository.dart';
@@ -92,33 +93,49 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const CircleAvatar(
-                            radius: 16,
-                            backgroundColor: AppColors.surfaceHighlight,
-                            child: Icon(
-                              Icons.person,
-                              size: 16,
-                              color: Colors.white54,
-                            ),
+                          GestureDetector(
+                            onTap: () =>
+                                context.push('/profile/${comment.userId}'),
+                            child: comment.avatarUrl != null
+                                ? CircleAvatar(
+                                    radius: 16,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                      comment.avatarUrl!,
+                                    ),
+                                  )
+                                : const CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: AppColors.surfaceHighlight,
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 16,
+                                      color: Colors.white54,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'User ${comment.userId.substring(0, 6)}', // We will update this to real usernames in the ARCH phase
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                                GestureDetector(
+                                  onTap: () => context.push(
+                                    '/profile/${comment.userId}',
+                                  ),
+                                  child: Text(
+                                    comment.username ?? 'Anonymous',
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   comment.content,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.textSecondary,
                                     fontSize: 14,
                                   ),
                                 ),

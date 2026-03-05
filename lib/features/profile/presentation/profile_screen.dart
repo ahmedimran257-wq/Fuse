@@ -78,11 +78,32 @@ class ProfileScreen extends ConsumerWidget {
                                       imageQuality: 70,
                                     );
                                     if (file != null) {
-                                      ref
+                                      final error = await ref
                                           .read(
                                             profileControllerProvider.notifier,
                                           )
                                           .updateAvatar(file.path);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              error == null
+                                                  ? 'Profile photo updated!'
+                                                  : 'Failed: $error',
+                                            ),
+                                            backgroundColor: error == null
+                                                ? AppColors.success
+                                                : AppColors.danger,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     }
                                   }
                                 : null,
@@ -361,20 +382,23 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Edit Username',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: controller,
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.accent),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.surfaceHighlight,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.accent),
-            ),
+            hintText: 'Enter new username',
+            hintStyle: const TextStyle(color: AppColors.textTertiary),
           ),
         ),
         actions: [
@@ -387,14 +411,32 @@ class ProfileScreen extends ConsumerWidget {
           ),
           PremiumButton(
             text: 'Save',
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.isNotEmpty &&
                   controller.text != currentName) {
-                ref
+                Navigator.pop(ctx);
+                final error = await ref
                     .read(profileControllerProvider.notifier)
                     .updateUsername(controller.text);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error == null ? 'Username updated!' : 'Failed: $error',
+                      ),
+                      backgroundColor: error == null
+                          ? AppColors.success
+                          : AppColors.danger,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              } else {
+                Navigator.pop(ctx);
               }
-              Navigator.pop(ctx);
             },
           ),
         ],

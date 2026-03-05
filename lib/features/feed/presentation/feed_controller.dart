@@ -40,23 +40,54 @@ class FeedController extends StateNotifier<AsyncValue<List<Post>>> {
     if (_likedPostIds.contains(postId)) return; // Prevent spamming
 
     _likedPostIds.add(postId); // Optimistic local update
+    // Optimistically increment the like count
     state = AsyncValue.data(
-      state.value?.toList() ?? [],
-    ); // Force UI rebuild to show red heart
+      state.value
+              ?.map((p) => p.id == postId ? p.copyWith(likes: p.likes + 1) : p)
+              .toList() ??
+          [],
+    );
 
     try {
       await _repository.likePost(postId);
     } catch (e) {
       _likedPostIds.remove(postId); // Rollback on failure
+      state = AsyncValue.data(
+        state.value
+                ?.map(
+                  (p) => p.id == postId ? p.copyWith(likes: p.likes - 1) : p,
+                )
+                .toList() ??
+            [],
+      );
       _errorController.add('Failed to like. Please try again.');
-      state = AsyncValue.data(state.value?.toList() ?? []); // Revert UI
     }
   }
 
   Future<void> commentOnPost(String postId, String comment) async {
+    // Optimistically increment comment count
+    state = AsyncValue.data(
+      state.value
+              ?.map(
+                (p) =>
+                    p.id == postId ? p.copyWith(comments: p.comments + 1) : p,
+              )
+              .toList() ??
+          [],
+    );
     try {
       await _repository.commentOnPost(postId, comment);
     } catch (e) {
+      // Rollback
+      state = AsyncValue.data(
+        state.value
+                ?.map(
+                  (p) =>
+                      p.id == postId ? p.copyWith(comments: p.comments - 1) : p,
+                )
+                .toList() ??
+            [],
+      );
       _errorController.add('Failed to post comment. Please try again.');
     }
   }

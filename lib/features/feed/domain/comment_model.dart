@@ -1,18 +1,33 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class Comment {
+  final String id;
+  final String postId;
+  final String userId;
+  final String content;
+  final DateTime createdAt;
+  final String? username;
+  final String? avatarUrl;
 
-part 'comment_model.freezed.dart';
-part 'comment_model.g.dart';
+  const Comment({
+    required this.id,
+    required this.postId,
+    required this.userId,
+    required this.content,
+    required this.createdAt,
+    this.username,
+    this.avatarUrl,
+  });
 
-@freezed
-class Comment with _$Comment {
-  const factory Comment({
-    required String id,
-    @JsonKey(name: 'post_id') required String postId,
-    @JsonKey(name: 'user_id') required String userId,
-    required String content,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
-  }) = _Comment;
-
-  factory Comment.fromJson(Map<String, dynamic> json) =>
-      _$CommentFromJson(json);
+  factory Comment.fromJson(Map<String, dynamic> json) {
+    // Extract profile data from joined query
+    final profile = json['profiles'] as Map<String, dynamic>?;
+    return Comment(
+      id: json['id'] as String,
+      postId: json['post_id'] as String,
+      userId: json['user_id'] as String,
+      content: json['content'] as String? ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
+      username: profile?['username'] as String?,
+      avatarUrl: profile?['avatar_url'] as String?,
+    );
+  }
 }
