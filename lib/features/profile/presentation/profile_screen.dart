@@ -172,6 +172,24 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           _buildStat(
+                            'Streak',
+                            '🔥 ${profile.donationStreak}',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStat(
+                            'Fuse Energy',
+                            '⚡ ${profile.fuseEnergy}',
+                          ),
+                          _buildStat(
+                            'Posts',
+                            '${profile.postCount}',
+                          ),
+                          _buildStat(
                             'Revive Tokens',
                             '${profile.reviveTokens}',
                           ),

@@ -18,6 +18,7 @@ _$UserProfileImpl _$$UserProfileImplFromJson(Map<String, dynamic> json) =>
       followerCount: (json['follower_count'] as num?)?.toInt() ?? 0,
       followingCount: (json['following_count'] as num?)?.toInt() ?? 0,
       donationStreak: (json['donation_streak'] as num?)?.toInt() ?? 0,
+      fuseEnergy: (json['fuse_energy'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$$UserProfileImplToJson(_$UserProfileImpl instance) =>
@@ -32,4 +33,5 @@ Map<String, dynamic> _$$UserProfileImplToJson(_$UserProfileImpl instance) =>
       'follower_count': instance.followerCount,
       'following_count': instance.followingCount,
       'donation_streak': instance.donationStreak,
+      'fuse_energy': instance.fuseEnergy,
     };

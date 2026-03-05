@@ -1,17 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../../core/utils/haptics_engine.dart';
+import '../../core/services/connectivity_service.dart';
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainScaffold({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivity = ref.watch(connectivityProvider);
+
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          // Offline Banner
+          connectivity.when(
+            data: (isOnline) => isOnline
+                ? const SizedBox.shrink()
+                : Container(
+                    width: double.infinity,
+                    color: AppColors.danger,
+                    padding: const EdgeInsets.only(
+                      top: 48,
+                      bottom: 8,
+                      left: 16,
+                      right: 16,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'No internet connection',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.surface, width: 1)),
@@ -63,3 +103,4 @@ class MainScaffold extends StatelessWidget {
     );
   }
 }
+

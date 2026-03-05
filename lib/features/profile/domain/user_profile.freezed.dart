@@ -39,6 +39,8 @@ mixin _$UserProfile {
   int get followingCount => throw _privateConstructorUsedError;
   @JsonKey(name: 'donation_streak')
   int get donationStreak => throw _privateConstructorUsedError;
+  @JsonKey(name: 'fuse_energy')
+  int get fuseEnergy => throw _privateConstructorUsedError;
 
   /// Serializes this UserProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -68,6 +70,7 @@ abstract class $UserProfileCopyWith<$Res> {
     @JsonKey(name: 'follower_count') int followerCount,
     @JsonKey(name: 'following_count') int followingCount,
     @JsonKey(name: 'donation_streak') int donationStreak,
+    @JsonKey(name: 'fuse_energy') int fuseEnergy,
   });
 }
 
@@ -96,6 +99,7 @@ class _$UserProfileCopyWithImpl<$Res, $Val extends UserProfile>
     Object? followerCount = null,
     Object? followingCount = null,
     Object? donationStreak = null,
+    Object? fuseEnergy = null,
   }) {
     return _then(
       _value.copyWith(
@@ -139,6 +143,10 @@ class _$UserProfileCopyWithImpl<$Res, $Val extends UserProfile>
                 ? _value.donationStreak
                 : donationStreak // ignore: cast_nullable_to_non_nullable
                       as int,
+            fuseEnergy: null == fuseEnergy
+                ? _value.fuseEnergy
+                : fuseEnergy // ignore: cast_nullable_to_non_nullable
+                      as int,
           )
           as $Val,
     );
@@ -165,6 +173,7 @@ abstract class _$$UserProfileImplCopyWith<$Res>
     @JsonKey(name: 'follower_count') int followerCount,
     @JsonKey(name: 'following_count') int followingCount,
     @JsonKey(name: 'donation_streak') int donationStreak,
+    @JsonKey(name: 'fuse_energy') int fuseEnergy,
   });
 }
 
@@ -192,6 +201,7 @@ class __$$UserProfileImplCopyWithImpl<$Res>
     Object? followerCount = null,
     Object? followingCount = null,
     Object? donationStreak = null,
+    Object? fuseEnergy = null,
   }) {
     return _then(
       _$UserProfileImpl(
@@ -235,6 +245,10 @@ class __$$UserProfileImplCopyWithImpl<$Res>
             ? _value.donationStreak
             : donationStreak // ignore: cast_nullable_to_non_nullable
                   as int,
+        fuseEnergy: null == fuseEnergy
+            ? _value.fuseEnergy
+            : fuseEnergy // ignore: cast_nullable_to_non_nullable
+                  as int,
       ),
     );
   }
@@ -254,6 +268,7 @@ class _$UserProfileImpl implements _UserProfile {
     @JsonKey(name: 'follower_count') this.followerCount = 0,
     @JsonKey(name: 'following_count') this.followingCount = 0,
     @JsonKey(name: 'donation_streak') this.donationStreak = 0,
+    @JsonKey(name: 'fuse_energy') this.fuseEnergy = 0,
   });
 
   factory _$UserProfileImpl.fromJson(Map<String, dynamic> json) =>
@@ -287,10 +302,13 @@ class _$UserProfileImpl implements _UserProfile {
   @override
   @JsonKey(name: 'donation_streak')
   final int donationStreak;
+  @override
+  @JsonKey(name: 'fuse_energy')
+  final int fuseEnergy;
 
   @override
   String toString() {
-    return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, reviveTokens: $reviveTokens, timeDonatedWeek: $timeDonatedWeek, timeDonatedTotal: $timeDonatedTotal, postCount: $postCount, followerCount: $followerCount, followingCount: $followingCount, donationStreak: $donationStreak)';
+    return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, reviveTokens: $reviveTokens, timeDonatedWeek: $timeDonatedWeek, timeDonatedTotal: $timeDonatedTotal, postCount: $postCount, followerCount: $followerCount, followingCount: $followingCount, donationStreak: $donationStreak, fuseEnergy: $fuseEnergy)';
   }
 
   @override
@@ -316,7 +334,9 @@ class _$UserProfileImpl implements _UserProfile {
             (identical(other.followingCount, followingCount) ||
                 other.followingCount == followingCount) &&
             (identical(other.donationStreak, donationStreak) ||
-                other.donationStreak == donationStreak));
+                other.donationStreak == donationStreak) &&
+            (identical(other.fuseEnergy, fuseEnergy) ||
+                other.fuseEnergy == fuseEnergy));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -333,6 +353,7 @@ class _$UserProfileImpl implements _UserProfile {
     followerCount,
     followingCount,
     donationStreak,
+    fuseEnergy,
   );
 
   /// Create a copy of UserProfile
@@ -361,6 +382,7 @@ abstract class _UserProfile implements UserProfile {
     @JsonKey(name: 'follower_count') final int followerCount,
     @JsonKey(name: 'following_count') final int followingCount,
     @JsonKey(name: 'donation_streak') final int donationStreak,
+    @JsonKey(name: 'fuse_energy') final int fuseEnergy,
   }) = _$UserProfileImpl;
 
   factory _UserProfile.fromJson(Map<String, dynamic> json) =
@@ -394,6 +416,9 @@ abstract class _UserProfile implements UserProfile {
   @override
   @JsonKey(name: 'donation_streak')
   int get donationStreak;
+  @override
+  @JsonKey(name: 'fuse_energy')
+  int get fuseEnergy;
 
   /// Create a copy of UserProfile
   /// with the given fields replaced by the non-null parameter values.

@@ -16,6 +16,7 @@ class UserProfile with _$UserProfile {
     @JsonKey(name: 'follower_count') @Default(0) int followerCount,
     @JsonKey(name: 'following_count') @Default(0) int followingCount,
     @JsonKey(name: 'donation_streak') @Default(0) int donationStreak,
+    @JsonKey(name: 'fuse_energy') @Default(0) int fuseEnergy,
   }) = _UserProfile;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) =>
